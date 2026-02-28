@@ -1,0 +1,408 @@
+[SYSTEM] Loading execution plan from experiment_mapping.json...
+
+--- PHASE 1: Running Baseline (Indexed RLS) ---
+  -> Building index on lineitem for policy columns: (l_shipdate, l_receiptdate)
+  -> [LOG] Securing supplier
+     |-- Logical Filter: TRUE
+     |-- Applied Policy: USING (s_suppkey IN (SELECT s_suppkey FROM rls_bypass_view_supplier))
+  -> [LOG] Securing part
+     |-- Logical Filter: TRUE
+     |-- Applied Policy: USING (p_partkey IN (SELECT p_partkey FROM rls_bypass_view_part))
+  -> [LOG] Securing customer
+     |-- Logical Filter: TRUE
+     |-- Applied Policy: USING (c_custkey IN (SELECT c_custkey FROM rls_bypass_view_customer))
+  -> [LOG] Securing orders
+     |-- Logical Filter: TRUE
+     |-- Applied Policy: USING (o_orderkey IN (SELECT o_orderkey FROM rls_bypass_view_orders))
+  -> [LOG] Securing lineitem
+     |-- Logical Filter: ABS(o.o_orderdate - l.l_shipdate)
+    < ABS(o.o_orderdate - l.l_receiptdate)
+     |-- Applied Policy: USING ((l_orderkey, l_linenumber) IN (SELECT l_orderkey, l_linenumber FROM rls_bypass_view_lineitem))
+  -> [DEBUG] Firing Q1. Active Predicates:
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q1] Indexed RLS Baseline: 6.8774s
+
+  -> [DEBUG] Firing Q2. Active Predicates:
+       |-- part: TRUE
+       |-- supplier: TRUE
+  [Q2] Indexed RLS Baseline: 0.2526s
+
+  -> [DEBUG] Firing Q3. Active Predicates:
+       |-- orders: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q3] Indexed RLS Baseline: 13.6113s
+
+  -> [DEBUG] Firing Q4. Active Predicates:
+       |-- orders: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q4] Indexed RLS Baseline: 13.4087s
+
+  -> [DEBUG] Firing Q5. Active Predicates:
+       |-- orders: TRUE
+       |-- supplier: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q5] Indexed RLS Baseline: 14.5809s
+
+  -> [DEBUG] Firing Q6. Active Predicates:
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q6] Indexed RLS Baseline: 5.9221s
+
+  -> [DEBUG] Firing Q7. Active Predicates:
+       |-- orders: TRUE
+       |-- supplier: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q7] Indexed RLS Baseline: 14.4346s
+
+  -> [DEBUG] Firing Q8. Active Predicates:
+       |-- part: TRUE
+       |-- orders: TRUE
+       |-- supplier: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q8] Indexed RLS Baseline: 3.1439s
+
+  -> [DEBUG] Firing Q9. Active Predicates:
+       |-- part: TRUE
+       |-- orders: TRUE
+       |-- supplier: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q9] Indexed RLS Baseline: 1.2954s
+
+  -> [DEBUG] Firing Q10. Active Predicates:
+       |-- orders: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q10] Indexed RLS Baseline: 13.2656s
+
+  -> [DEBUG] Firing Q11. Active Predicates:
+       |-- supplier: TRUE
+  [Q11] Indexed RLS Baseline: 2.3288s
+
+  -> [DEBUG] Firing Q12. Active Predicates:
+       |-- orders: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q12] Indexed RLS Baseline: 12.7630s
+
+  -> [DEBUG] Firing Q13. Active Predicates:
+       |-- orders: TRUE
+       |-- customer: TRUE
+  [Q13] Indexed RLS Baseline: 6.5670s
+
+  -> [DEBUG] Firing Q14. Active Predicates:
+       |-- part: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q14] Indexed RLS Baseline: 0.2687s
+
+  -> [DEBUG] Firing Q15. Active Predicates:
+       |-- supplier: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q15] Indexed RLS Baseline: 6.6296s
+
+  -> [DEBUG] Firing Q16. Active Predicates:
+       |-- supplier: TRUE
+       |-- part: TRUE
+       |-- customer: TRUE
+  [Q16] Indexed RLS Baseline: 0.2559s
+
+  -> [DEBUG] Firing Q17. Active Predicates:
+       |-- part: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q17] Indexed RLS Baseline: 0.2540s
+
+  -> [DEBUG] Firing Q18. Active Predicates:
+       |-- orders: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q18] Indexed RLS Baseline: 25.0262s
+
+  -> [DEBUG] Firing Q19. Active Predicates:
+       |-- part: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q19] Indexed RLS Baseline: 6.0399s
+
+  -> [DEBUG] Firing Q20. Active Predicates:
+       |-- part: TRUE
+       |-- supplier: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q20] Indexed RLS Baseline: 5.8312s
+
+  -> [DEBUG] Firing Q21. Active Predicates:
+       |-- orders: TRUE
+       |-- supplier: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q21] Indexed RLS Baseline: 26.4250s
+
+  -> [DEBUG] Firing Q22. Active Predicates:
+       |-- orders: TRUE
+       |-- customer: TRUE
+  [Q22] Indexed RLS Baseline: 8.8305s
+
+
+--- PHASE 2: Running Exp 1 (Pure Native RLS) ---
+  -> [LOG] Securing supplier
+     |-- Logical Filter: TRUE
+     |-- Applied Policy: USING (s_suppkey IN (SELECT s_suppkey FROM rls_bypass_view_supplier))
+  -> [LOG] Securing part
+     |-- Logical Filter: TRUE
+     |-- Applied Policy: USING (p_partkey IN (SELECT p_partkey FROM rls_bypass_view_part))
+  -> [LOG] Securing customer
+     |-- Logical Filter: TRUE
+     |-- Applied Policy: USING (c_custkey IN (SELECT c_custkey FROM rls_bypass_view_customer))
+  -> [LOG] Securing orders
+     |-- Logical Filter: TRUE
+     |-- Applied Policy: USING (o_orderkey IN (SELECT o_orderkey FROM rls_bypass_view_orders))
+  -> [LOG] Securing lineitem
+     |-- Logical Filter: ABS(o.o_orderdate - l.l_shipdate)
+    < ABS(o.o_orderdate - l.l_receiptdate)
+     |-- Applied Policy: USING ((l_orderkey, l_linenumber) IN (SELECT l_orderkey, l_linenumber FROM rls_bypass_view_lineitem))
+  -> [DEBUG] Firing Q1 (Pure RLS). Active Predicates:
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q1] Pure RLS Avg: 6.8825s
+
+  -> [DEBUG] Firing Q2 (Pure RLS). Active Predicates:
+       |-- part: TRUE
+       |-- supplier: TRUE
+  [Q2] Pure RLS Avg: 0.2516s
+
+  -> [DEBUG] Firing Q3 (Pure RLS). Active Predicates:
+       |-- orders: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q3] Pure RLS Avg: 13.4654s
+
+  -> [DEBUG] Firing Q4 (Pure RLS). Active Predicates:
+       |-- orders: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q4] Pure RLS Avg: 13.3805s
+
+  -> [DEBUG] Firing Q5 (Pure RLS). Active Predicates:
+       |-- orders: TRUE
+       |-- supplier: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q5] Pure RLS Avg: 14.7674s
+
+  -> [DEBUG] Firing Q6 (Pure RLS). Active Predicates:
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q6] Pure RLS Avg: 5.8727s
+
+  -> [DEBUG] Firing Q7 (Pure RLS). Active Predicates:
+       |-- orders: TRUE
+       |-- supplier: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q7] Pure RLS Avg: 15.6317s
+
+  -> [DEBUG] Firing Q8 (Pure RLS). Active Predicates:
+       |-- part: TRUE
+       |-- orders: TRUE
+       |-- supplier: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q8] Pure RLS Avg: 3.0602s
+
+  -> [DEBUG] Firing Q9 (Pure RLS). Active Predicates:
+       |-- part: TRUE
+       |-- orders: TRUE
+       |-- supplier: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q9] Pure RLS Avg: 1.2860s
+
+  -> [DEBUG] Firing Q10 (Pure RLS). Active Predicates:
+       |-- orders: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q10] Pure RLS Avg: 13.6442s
+
+  -> [DEBUG] Firing Q11 (Pure RLS). Active Predicates:
+       |-- supplier: TRUE
+  [Q11] Pure RLS Avg: 2.4112s
+
+  -> [DEBUG] Firing Q12 (Pure RLS). Active Predicates:
+       |-- orders: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q12] Pure RLS Avg: 12.6708s
+
+  -> [DEBUG] Firing Q13 (Pure RLS). Active Predicates:
+       |-- orders: TRUE
+       |-- customer: TRUE
+  [Q13] Pure RLS Avg: 6.5668s
+
+  -> [DEBUG] Firing Q14 (Pure RLS). Active Predicates:
+       |-- part: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q14] Pure RLS Avg: 0.2723s
+
+  -> [DEBUG] Firing Q15 (Pure RLS). Active Predicates:
+       |-- supplier: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q15] Pure RLS Avg: 6.6014s
+
+  -> [DEBUG] Firing Q16 (Pure RLS). Active Predicates:
+       |-- supplier: TRUE
+       |-- part: TRUE
+       |-- customer: TRUE
+  [Q16] Pure RLS Avg: 0.2557s
+
+  -> [DEBUG] Firing Q17 (Pure RLS). Active Predicates:
+       |-- part: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q17] Pure RLS Avg: 0.2619s
+
+  -> [DEBUG] Firing Q18 (Pure RLS). Active Predicates:
+       |-- orders: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q18] Pure RLS Avg: 25.0242s
+
+  -> [DEBUG] Firing Q19 (Pure RLS). Active Predicates:
+       |-- part: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q19] Pure RLS Avg: 5.9519s
+
+  -> [DEBUG] Firing Q20 (Pure RLS). Active Predicates:
+       |-- part: TRUE
+       |-- supplier: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q20] Pure RLS Avg: 5.9394s
+
+  -> [DEBUG] Firing Q21 (Pure RLS). Active Predicates:
+       |-- orders: TRUE
+       |-- supplier: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q21] Pure RLS Avg: 26.0580s
+
+  -> [DEBUG] Firing Q22 (Pure RLS). Active Predicates:
+       |-- orders: TRUE
+       |-- customer: TRUE
+  [Q22] Pure RLS Avg: 8.7306s
+
+
+--- PHASE 3: Running Exp 2 (Secure Views) ---
+  -> [DEBUG] Firing Q1 (Secure Views). Active Predicates:
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q1] Secure Views Avg: 3.0432s
+
+  -> [DEBUG] Firing Q2 (Secure Views). Active Predicates:
+       |-- part: TRUE
+       |-- supplier: TRUE
+  [Q2] Secure Views Avg: 2.1315s
+
+  -> [DEBUG] Firing Q3 (Secure Views). Active Predicates:
+       |-- orders: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q3] Secure Views Avg: 9.1943s
+
+  -> [DEBUG] Firing Q4 (Secure Views). Active Predicates:
+       |-- orders: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q4] Secure Views Avg: 7.7254s
+
+  -> [DEBUG] Firing Q5 (Secure Views). Active Predicates:
+       |-- orders: TRUE
+       |-- supplier: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q5] Secure Views Avg: 10.8625s
+
+  -> [DEBUG] Firing Q6 (Secure Views). Active Predicates:
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q6] Secure Views Avg: 1.6330s
+
+  -> [DEBUG] Firing Q7 (Secure Views). Active Predicates:
+       |-- orders: TRUE
+       |-- supplier: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q7] Secure Views Avg: 10.4714s
+
+  -> [DEBUG] Firing Q8 (Secure Views). Active Predicates:
+       |-- part: TRUE
+       |-- orders: TRUE
+       |-- supplier: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q8] Secure Views Avg: 4.0630s
+
+  -> [DEBUG] Firing Q9 (Secure Views). Active Predicates:
+       |-- part: TRUE
+       |-- orders: TRUE
+       |-- supplier: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q9] Secure Views Avg: 0.3259s
+
+  -> [DEBUG] Firing Q10 (Secure Views). Active Predicates:
+       |-- orders: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q10] Secure Views Avg: 9.6658s
+
+  -> [DEBUG] Firing Q11 (Secure Views). Active Predicates:
+       |-- supplier: TRUE
+  [Q11] Secure Views Avg: 3.7154s
+
+  -> [DEBUG] Firing Q12 (Secure Views). Active Predicates:
+       |-- orders: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q12] Secure Views Avg: 6.4488s
+
+  -> [DEBUG] Firing Q13 (Secure Views). Active Predicates:
+       |-- orders: TRUE
+       |-- customer: TRUE
+  [Q13] Secure Views Avg: 7.6590s
+
+  -> [DEBUG] Firing Q14 (Secure Views). Active Predicates:
+       |-- part: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q14] Secure Views Avg: 1.7052s
+
+  -> [DEBUG] Firing Q15 (Secure Views). Active Predicates:
+       |-- supplier: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q15] Secure Views Avg: 3.3116s
+
+  -> [DEBUG] Firing Q16 (Secure Views). Active Predicates:
+       |-- supplier: TRUE
+       |-- part: TRUE
+       |-- customer: TRUE
+  [Q16] Secure Views Avg: 2.0685s
+
+  -> [DEBUG] Firing Q17 (Secure Views). Active Predicates:
+       |-- part: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q17] Secure Views Avg: 0.2493s
+
+  -> [DEBUG] Firing Q18 (Secure Views). Active Predicates:
+       |-- orders: TRUE
+       |-- customer: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q18] Secure Views Avg: 23.8943s
+
+  -> [DEBUG] Firing Q19 (Secure Views). Active Predicates:
+       |-- part: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q19] Secure Views Avg: 1.9614s
+
+  -> [DEBUG] Firing Q20 (Secure Views). Active Predicates:
+       |-- part: TRUE
+       |-- supplier: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q20] Secure Views Avg: 10.3782s
+
+  -> [DEBUG] Firing Q21 (Secure Views). Active Predicates:
+       |-- orders: TRUE
+       |-- supplier: TRUE
+       |-- lineitem: ABS(o.o_orderdate - l.l_shipdate)     < ABS(o.o_orderdate - l.l_receiptdate)
+  [Q21] Secure Views Avg: 11.9729s
+
+  -> [DEBUG] Firing Q22 (Secure Views). Active Predicates:
+       |-- orders: TRUE
+       |-- customer: TRUE
+  [Q22] Secure Views Avg: 8.9480s
+
+
+Saved as postgres_exp2_clean.png
