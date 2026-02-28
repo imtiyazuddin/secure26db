@@ -76,10 +76,15 @@ def build_policy_indexes():
         all_cols = set(re.findall(r'\b([a-z]+_[a-z0-9_]+)\b', predicate.lower()))
         valid_cols = [col for col in all_cols if col.startswith(prefix_map.get(table, ''))]
         
+        #if valid_cols:
+        #    col_str = ", ".join(valid_cols)
+        #    print(f"  -> Building index on {table} for policy columns: ({col_str})", flush=True)
+        #    cursor_admin.execute(f"CREATE INDEX idx_{table}_policy_cov ON {table} ({col_str});")
         if valid_cols:
-            col_str = ", ".join(valid_cols)
-            print(f"  -> Building index on {table} for policy columns: ({col_str})", flush=True)
-            cursor_admin.execute(f"CREATE INDEX idx_{table}_policy_cov ON {table} ({col_str});")
+            for col in valid_cols:
+                idx_name = f"idx_{table}_{col}_policy_cov"
+                print(f"  -> Building index on {table} for policy column: ({col})", flush=True)
+                cursor_admin.execute(f'CREATE INDEX "{idx_name}" ON "{table}" ("{col}");')
         cursor_admin.execute(f"ANALYZE {table};")
 
 def apply_rls():
