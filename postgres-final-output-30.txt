@@ -1,0 +1,206 @@
+[SYSTEM] Loading execution plan from experiment_mapping.json...
+
+--- PHASE 1: Running Baseline (Indexed RLS) ---
+  -> Building index on lineitem for policy column: (l_discount)
+  -> Building index on lineitem for policy column: (l_extendedprice)
+  -> Building index on customer for policy column: (c_nationkey)
+  -> Building index on orders for policy column: (o_orderkey)
+  -> Building index on supplier for policy column: (s_suppkey)
+  -> Building index on nation for policy column: (n_regionkey)
+  -> Building index on lineitem for policy column: (l_suppkey)
+  -> Building index on nation for policy column: (n_nationkey)
+  -> Building index on orders for policy column: (o_custkey)
+  -> Building index on supplier for policy column: (s_nationkey)
+  -> Building index on lineitem for policy column: (l_orderkey)
+  -> Building index on customer for policy column: (c_custkey)
+  -> Building index on lineitem for policy column: (l_quantity)
+  -> Building index on part for policy column: (p_partkey)
+  -> Building index on lineitem for policy column: (l_partkey)
+  -> Building index on part for policy column: (p_retailprice)
+  -> Building index on partsupp for policy column: (ps_partkey)
+  -> Building index on partsupp for policy column: (ps_suppkey)
+  -> [LOG] Securing orders
+     |-- Logical Filter: HAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000
+     |-- Applied Policy: USING (o_orderkey IN (SELECT o_orderkey FROM rls_bypass_view_orders))
+  -> [LOG] Securing customer
+     |-- Logical Filter: EXISTS (
+    SELECT 1
+    FROM orders o
+    JOIN lineitem l 
+         ON l.l_orderkey = o.o_orderkey
+    JOIN supplier s 
+         ON s.s_suppkey = l.l_suppkey
+    JOIN nation ns 
+         ON ns.n_nationkey = s.s_nationkey
+    JOIN nation nc 
+         ON nc.n_nationkey = c.c_nationkey
+    WHERE o.o_custkey = c.c_custkey
+      AND ns.n_regionkey = nc.n_regionkey
+      AND ns.n_nationkey <> nc.n_nationkey
+)
+     |-- Applied Policy: USING (c_custkey IN (SELECT c_custkey FROM rls_bypass_view_customer))
+  -> [LOG] Securing lineitem
+     |-- Logical Filter: (
+    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))
+    FROM lineitem lx
+    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey
+    WHERE sx.s_nationkey = n.n_nationkey
+)
+>
+(
+    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))
+    FROM lineitem ly
+    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey
+    JOIN customer cy ON cy.c_custkey = oy.o_custkey
+    WHERE cy.c_nationkey = n.n_nationkey
+)
+     |-- Applied Policy: USING ((l_orderkey, l_linenumber) IN (SELECT l_orderkey, l_linenumber FROM rls_bypass_view_lineitem))
+  -> [LOG] Securing part
+     |-- Logical Filter: NOT EXISTS (
+    SELECT 1
+    FROM lineitem l
+    WHERE l.l_partkey = p.p_partkey
+      AND l.l_quantity > 200
+)
+     |-- Applied Policy: USING (p_partkey IN (SELECT p_partkey FROM rls_bypass_view_part))
+  -> [LOG] Securing supplier
+     |-- Logical Filter: NOT EXISTS (
+    SELECT 1
+    FROM partsupp ps
+    JOIN part p ON p.p_partkey = ps.ps_partkey
+    WHERE ps.ps_suppkey = s.s_suppkey
+      AND p.p_retailprice < 500
+)
+     |-- Applied Policy: USING (s_suppkey IN (SELECT s_suppkey FROM rls_bypass_view_supplier))
+  -> [DEBUG] Firing Q1. Active Predicates:
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q1] Indexed RLS Baseline: 64.1796s
+
+  -> [DEBUG] Firing Q2. Active Predicates:
+       |-- supplier: NOT EXISTS (     SELECT 1     FROM partsupp ps     JOIN part p ON p.p_partkey = ps.ps_partkey     WHERE ps.ps_suppkey = s.s_suppkey       AND p.p_retailprice < 500 )
+       |-- part: NOT EXISTS (     SELECT 1     FROM lineitem l     WHERE l.l_partkey = p.p_partkey       AND l.l_quantity > 200 )
+  [Q2] Indexed RLS Baseline: 4.2334s
+
+  -> [DEBUG] Firing Q3. Active Predicates:
+       |-- orders: HAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     JOIN lineitem l           ON l.l_orderkey = o.o_orderkey     JOIN supplier s           ON s.s_suppkey = l.l_suppkey     JOIN nation ns           ON ns.n_nationkey = s.s_nationkey     JOIN nation nc           ON nc.n_nationkey = c.c_nationkey     WHERE o.o_custkey = c.c_custkey       AND ns.n_regionkey = nc.n_regionkey       AND ns.n_nationkey <> nc.n_nationkey )
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q3] Indexed RLS Baseline: TIMEOUT (> 900s)
+
+  -> [DEBUG] Firing Q4. Active Predicates:
+       |-- orders: HAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q4] Indexed RLS Baseline: 71.4776s
+
+  -> [DEBUG] Firing Q5. Active Predicates:
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+       |-- supplier: NOT EXISTS (     SELECT 1     FROM partsupp ps     JOIN part p ON p.p_partkey = ps.ps_partkey     WHERE ps.ps_suppkey = s.s_suppkey       AND p.p_retailprice < 500 )
+       |-- orders: HAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     JOIN lineitem l           ON l.l_orderkey = o.o_orderkey     JOIN supplier s           ON s.s_suppkey = l.l_suppkey     JOIN nation ns           ON ns.n_nationkey = s.s_nationkey     JOIN nation nc           ON nc.n_nationkey = c.c_nationkey     WHERE o.o_custkey = c.c_custkey       AND ns.n_regionkey = nc.n_regionkey       AND ns.n_nationkey <> nc.n_nationkey )
+  [Q5] Indexed RLS Baseline: TIMEOUT (> 900s)
+
+  -> [DEBUG] Firing Q6. Active Predicates:
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q6] Indexed RLS Baseline: 49.0945s
+
+  -> [DEBUG] Firing Q7. Active Predicates:
+       |-- supplier: NOT EXISTS (     SELECT 1     FROM partsupp ps     JOIN part p ON p.p_partkey = ps.ps_partkey     WHERE ps.ps_suppkey = s.s_suppkey       AND p.p_retailprice < 500 )
+       |-- orders: HAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     JOIN lineitem l           ON l.l_orderkey = o.o_orderkey     JOIN supplier s           ON s.s_suppkey = l.l_suppkey     JOIN nation ns           ON ns.n_nationkey = s.s_nationkey     JOIN nation nc           ON nc.n_nationkey = c.c_nationkey     WHERE o.o_custkey = c.c_custkey       AND ns.n_regionkey = nc.n_regionkey       AND ns.n_nationkey <> nc.n_nationkey )
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q7] Indexed RLS Baseline: TIMEOUT (> 900s)
+
+  -> [DEBUG] Firing Q8. Active Predicates:
+       |-- supplier: NOT EXISTS (     SELECT 1     FROM partsupp ps     JOIN part p ON p.p_partkey = ps.ps_partkey     WHERE ps.ps_suppkey = s.s_suppkey       AND p.p_retailprice < 500 )
+       |-- orders: HAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000
+       |-- part: NOT EXISTS (     SELECT 1     FROM lineitem l     WHERE l.l_partkey = p.p_partkey       AND l.l_quantity > 200 )
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     JOIN lineitem l           ON l.l_orderkey = o.o_orderkey     JOIN supplier s           ON s.s_suppkey = l.l_suppkey     JOIN nation ns           ON ns.n_nationkey = s.s_nationkey     JOIN nation nc           ON nc.n_nationkey = c.c_nationkey     WHERE o.o_custkey = c.c_custkey       AND ns.n_regionkey = nc.n_regionkey       AND ns.n_nationkey <> nc.n_nationkey )
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q8] Indexed RLS Baseline: TIMEOUT (> 900s)
+
+  -> [DEBUG] Firing Q9. Active Predicates:
+       |-- supplier: NOT EXISTS (     SELECT 1     FROM partsupp ps     JOIN part p ON p.p_partkey = ps.ps_partkey     WHERE ps.ps_suppkey = s.s_suppkey       AND p.p_retailprice < 500 )
+       |-- orders: HAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000
+       |-- part: NOT EXISTS (     SELECT 1     FROM lineitem l     WHERE l.l_partkey = p.p_partkey       AND l.l_quantity > 200 )
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q9] Indexed RLS Baseline: 57.5946s
+
+  -> [DEBUG] Firing Q10. Active Predicates:
+       |-- orders: HAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     JOIN lineitem l           ON l.l_orderkey = o.o_orderkey     JOIN supplier s           ON s.s_suppkey = l.l_suppkey     JOIN nation ns           ON ns.n_nationkey = s.s_nationkey     JOIN nation nc           ON nc.n_nationkey = c.c_nationkey     WHERE o.o_custkey = c.c_custkey       AND ns.n_regionkey = nc.n_regionkey       AND ns.n_nationkey <> nc.n_nationkey )
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q10] Indexed RLS Baseline: TIMEOUT (> 900s)
+
+  -> [DEBUG] Firing Q11. Active Predicates:
+       |-- supplier: NOT EXISTS (     SELECT 1     FROM partsupp ps     JOIN part p ON p.p_partkey = ps.ps_partkey     WHERE ps.ps_suppkey = s.s_suppkey       AND p.p_retailprice < 500 )
+  [Q11] Indexed RLS Baseline: 0.3502s
+
+  -> [DEBUG] Firing Q12. Active Predicates:
+       |-- orders: HAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q12] Indexed RLS Baseline: 53.1160s
+
+  -> [DEBUG] Firing Q13. Active Predicates:
+       |-- orders: HAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     JOIN lineitem l           ON l.l_orderkey = o.o_orderkey     JOIN supplier s           ON s.s_suppkey = l.l_suppkey     JOIN nation ns           ON ns.n_nationkey = s.s_nationkey     JOIN nation nc           ON nc.n_nationkey = c.c_nationkey     WHERE o.o_custkey = c.c_custkey       AND ns.n_regionkey = nc.n_regionkey       AND ns.n_nationkey <> nc.n_nationkey )
+  [Q13] Indexed RLS Baseline: TIMEOUT (> 900s)
+
+  -> [DEBUG] Firing Q14. Active Predicates:
+       |-- part: NOT EXISTS (     SELECT 1     FROM lineitem l     WHERE l.l_partkey = p.p_partkey       AND l.l_quantity > 200 )
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q14] Indexed RLS Baseline: 46.6083s
+
+  -> [DEBUG] Firing Q15. Active Predicates:
+       |-- supplier: NOT EXISTS (     SELECT 1     FROM partsupp ps     JOIN part p ON p.p_partkey = ps.ps_partkey     WHERE ps.ps_suppkey = s.s_suppkey       AND p.p_retailprice < 500 )
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q15] Indexed RLS Baseline: 46.4362s
+
+  -> [DEBUG] Firing Q16. Active Predicates:
+       |-- supplier: NOT EXISTS (     SELECT 1     FROM partsupp ps     JOIN part p ON p.p_partkey = ps.ps_partkey     WHERE ps.ps_suppkey = s.s_suppkey       AND p.p_retailprice < 500 )
+       |-- part: NOT EXISTS (     SELECT 1     FROM lineitem l     WHERE l.l_partkey = p.p_partkey       AND l.l_quantity > 200 )
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     JOIN lineitem l           ON l.l_orderkey = o.o_orderkey     JOIN supplier s           ON s.s_suppkey = l.l_suppkey     JOIN nation ns           ON ns.n_nationkey = s.s_nationkey     JOIN nation nc           ON nc.n_nationkey = c.c_nationkey     WHERE o.o_custkey = c.c_custkey       AND ns.n_regionkey = nc.n_regionkey       AND ns.n_nationkey <> nc.n_nationkey )
+  [Q16] Indexed RLS Baseline: 0.4946s
+
+  -> [DEBUG] Firing Q17. Active Predicates:
+       |-- part: NOT EXISTS (     SELECT 1     FROM lineitem l     WHERE l.l_partkey = p.p_partkey       AND l.l_quantity > 200 )
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q17] Indexed RLS Baseline: 97.2846s
+
+  -> [DEBUG] Firing Q18. Active Predicates:
+       |-- orders: HAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     JOIN lineitem l           ON l.l_orderkey = o.o_orderkey     JOIN supplier s           ON s.s_suppkey = l.l_suppkey     JOIN nation ns           ON ns.n_nationkey = s.s_nationkey     JOIN nation nc           ON nc.n_nationkey = c.c_nationkey     WHERE o.o_custkey = c.c_custkey       AND ns.n_regionkey = nc.n_regionkey       AND ns.n_nationkey <> nc.n_nationkey )
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q18] Indexed RLS Baseline: 54.3095s
+
+  -> [DEBUG] Firing Q19. Active Predicates:
+       |-- part: NOT EXISTS (     SELECT 1     FROM lineitem l     WHERE l.l_partkey = p.p_partkey       AND l.l_quantity > 200 )
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q19] Indexed RLS Baseline: 45.9696s
+
+  -> [DEBUG] Firing Q20. Active Predicates:
+       |-- supplier: NOT EXISTS (     SELECT 1     FROM partsupp ps     JOIN part p ON p.p_partkey = ps.ps_partkey     WHERE ps.ps_suppkey = s.s_suppkey       AND p.p_retailprice < 500 )
+       |-- part: NOT EXISTS (     SELECT 1     FROM lineitem l     WHERE l.l_partkey = p.p_partkey       AND l.l_quantity > 200 )
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q20] Indexed RLS Baseline: 408.4013s
+
+  -> [DEBUG] Firing Q21. Active Predicates:
+       |-- supplier: NOT EXISTS (     SELECT 1     FROM partsupp ps     JOIN part p ON p.p_partkey = ps.ps_partkey     WHERE ps.ps_suppkey = s.s_suppkey       AND p.p_retailprice < 500 )
+       |-- orders: HAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q21] Indexed RLS Baseline: 155.5956s
+
+  -> [DEBUG] Firing Q22. Active Predicates:
+       |-- orders: HAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     JOIN lineitem l           ON l.l_orderkey = o.o_orderkey     JOIN supplier s           ON s.s_suppkey = l.l_suppkey     JOIN nation ns           ON ns.n_nationkey = s.s_nationkey     JOIN nation nc           ON nc.n_nationkey = c.c_nationkey     WHERE o.o_custkey = c.c_custkey       AND ns.n_regionkey = nc.n_regionkey       AND ns.n_nationkey <> nc.n_nationkey )
+  [Q22] Indexed RLS Baseline: TIMEOUT (> 900s)
+
+
+--- PHASE 2: Running Exp 1 (Pure Native RLS) ---
+  -> Building PK index on region: (r_regionkey)
+Traceback (most recent call last):
+  File "/home/securedb/SecureDB/final_run_postgres_exp2-30.py", line 282, in <module>
+    build_pk_indexes()
+  File "/home/securedb/SecureDB/final_run_postgres_exp2-30.py", line 183, in build_pk_indexes
+    cursor_admin.execute(f'CREATE INDEX {idx_name} ON {table} ({col_str});')
+psycopg2.errors.DuplicateTable: relation "idx_region_pk" already exists
+
