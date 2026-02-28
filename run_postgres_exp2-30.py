@@ -12,6 +12,85 @@ DB_NAME = "postgres"
 MAPPING_FILE = "experiment_mapping.json"
 # ---------------------
 
+TPCH_COLUMN_TO_TABLE = {
+        # region
+        "r_regionkey": "region",
+        "r_name": "region",
+        "r_comment": "region",
+
+        # nation
+        "n_nationkey": "nation",
+        "n_name": "nation",
+        "n_regionkey": "nation",
+        "n_comment": "nation",
+
+        # part
+        "p_partkey": "part",
+        "p_name": "part",
+        "p_mfgr": "part",
+        "p_brand": "part",
+        "p_type": "part",
+        "p_size": "part",
+        "p_container": "part",
+        "p_retailprice": "part",
+        "p_comment": "part",
+
+        # supplier
+        "s_suppkey": "supplier",
+        "s_name": "supplier",
+        "s_address": "supplier",
+        "s_nationkey": "supplier",
+        "s_phone": "supplier",
+        "s_acctbal": "supplier",
+        "s_comment": "supplier",
+
+        # partsupp
+        "ps_partkey": "partsupp",
+        "ps_suppkey": "partsupp",
+        "ps_availqty": "partsupp",
+        "ps_supplycost": "partsupp",
+        "ps_comment": "partsupp",
+
+        # customer
+        "c_custkey": "customer",
+        "c_name": "customer",
+        "c_address": "customer",
+        "c_nationkey": "customer",
+        "c_phone": "customer",
+        "c_acctbal": "customer",
+        "c_mktsegment": "customer",
+        "c_comment": "customer",
+
+        # orders
+        "o_orderkey": "orders",
+        "o_custkey": "orders",
+        "o_orderstatus": "orders",
+        "o_totalprice": "orders",
+        "o_orderdate": "orders",
+        "o_orderpriority": "orders",
+        "o_clerk": "orders",
+        "o_shippriority": "orders",
+        "o_comment": "orders",
+
+        # lineitem
+        "l_orderkey": "lineitem",
+        "l_partkey": "lineitem",
+        "l_suppkey": "lineitem",
+        "l_linenumber": "lineitem",
+        "l_quantity": "lineitem",
+        "l_extendedprice": "lineitem",
+        "l_discount": "lineitem",
+        "l_tax": "lineitem",
+        "l_returnflag": "lineitem",
+        "l_linestatus": "lineitem",
+        "l_shipdate": "lineitem",
+        "l_commitdate": "lineitem",
+        "l_receiptdate": "lineitem",
+        "l_shipinstruct": "lineitem",
+        "l_shipmode": "lineitem",
+        "l_comment": "lineitem",
+    }
+
 print(f"[SYSTEM] Loading execution plan from {MAPPING_FILE}...", flush=True)
 with open(MAPPING_FILE, 'r') as f:
     plan = json.load(f)
@@ -71,16 +150,17 @@ def build_policy_indexes():
         'supplier': 's_', 'partsupp': 'ps_',
         'customer': 'c_', 'orders': 'o_', 'lineitem': 'l_'
     }
-    for table, pol_data in global_policies.items():
+
+    index_done = {}
+
+    for _, pol_data in global_policies.items():
         predicate = pol_data["predicate"]
         all_cols = set(re.findall(r'\b([a-z]+_[a-z0-9_]+)\b', predicate.lower()))
-        valid_cols = [col for col in all_cols if col.startswith(prefix_map.get(table, ''))]
         
-        #if valid_cols:
-        #    col_str = ", ".join(valid_cols)
-        #    print(f"  -> Building index on {table} for policy columns: ({col_str})", flush=True)
-        #    cursor_admin.execute(f"CREATE INDEX idx_{table}_policy_cov ON {table} ({col_str});")
-        for col in valid_cols:
+        for col in all_cols:
+            if index_done.get(col):
+                continue
+            table = TPCH_COLUMN_TO_TABLE[col]
             idx_name = f"idx_{table}_{col}_policy_cov"
             print(f"  -> Building index on {table} for policy column: ({col})", flush=True)
             cursor_admin.execute(f'CREATE INDEX "{idx_name}" ON "{table}" ("{col}");')
