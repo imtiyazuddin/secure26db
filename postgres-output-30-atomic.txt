@@ -115,3 +115,17 @@
        |-- orders: TRUE
        |-- customer: EXISTS (     SELECT 1     FROM orders o     JOIN lineitem l           ON l.l_orderkey = o.o_orderkey     JOIN supplier s           ON s.s_suppkey = l.l_suppkey     JOIN nation ns           ON ns.n_nationkey = s.s_nationkey     JOIN nation nc           ON nc.n_nationkey = c.c_nationkey     WHERE o.o_custkey = c.c_custkey       AND ns.n_regionkey = nc.n_regionkey       AND ns.n_nationkey <> nc.n_nationkey )
        |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q10] Indexed RLS Baseline: TIMEOUT (> 900s)
+
+  -> [DEBUG] Firing Q11. Active Predicates:
+       |-- supplier: NOT EXISTS (     SELECT 1     FROM partsupp ps     JOIN part p ON p.p_partkey = ps.ps_partkey     WHERE ps.ps_suppkey = s.s_suppkey       AND p.p_retailprice < 500 )
+  [Q11] Indexed RLS Baseline: 0.4601s
+
+  -> [DEBUG] Firing Q12. Active Predicates:
+       |-- orders: TRUE
+       |-- lineitem: (     SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))     FROM lineitem lx     JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey     WHERE sx.s_nationkey = n.n_nationkey ) > (     SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))     FROM lineitem ly     JOIN orders oy ON oy.o_orderkey = ly.l_orderkey     JOIN customer cy ON cy.c_custkey = oy.o_custkey     WHERE cy.c_nationkey = n.n_nationkey )
+  [Q12] Indexed RLS Baseline: 69.7575s
+
+  -> [DEBUG] Firing Q13. Active Predicates:
+       |-- orders: TRUE
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     JOIN lineitem l           ON l.l_orderkey = o.o_orderkey     JOIN supplier s           ON s.s_suppkey = l.l_suppkey     JOIN nation ns           ON ns.n_nationkey = s.s_nationkey     JOIN nation nc           ON nc.n_nationkey = c.c_nationkey     WHERE o.o_custkey = c.c_custkey       AND ns.n_regionkey = nc.n_regionkey       AND ns.n_nationkey <> nc.n_nationkey )
