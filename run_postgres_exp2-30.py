@@ -164,6 +164,7 @@ def build_policy_indexes():
             idx_name = f"idx_{table}_{col}_policy_cov"
             print(f"  -> Building index on {table} for policy column: ({col})", flush=True)
             cursor_admin.execute(f'CREATE INDEX "{idx_name}" ON "{table}" ("{col}");')
+            index_done[col] = True
         cursor_admin.execute(f"ANALYZE {table};")
 
 def build_pk_indexes():
