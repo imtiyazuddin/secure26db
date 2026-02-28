@@ -87,6 +87,22 @@ def build_policy_indexes():
                 cursor_admin.execute(f'CREATE INDEX "{idx_name}" ON "{table}" ("{col}");')
         cursor_admin.execute(f"ANALYZE {table};")
 
+def build_pk_indexes():
+    LOCAL_PK_MAP = {
+        'region': 'r_regionkey', 'nation': 'n_nationkey', 'part': 'p_partkey',
+        'supplier': 's_suppkey', 'partsupp': 'ps_partkey, ps_suppkey',
+        'customer': 'c_custkey', 'orders': 'o_orderkey', 'lineitem': 'l_orderkey, l_linenumber'
+    }
+    for table, pk_cols in LOCAL_PK_MAP.items():
+        # Split composite keys into clean column list
+        cols = [col.strip() for col in pk_cols.split(",")]
+        col_str = ", ".join(cols)
+        # Create a unique index name per table
+        idx_name = f"idx_{table}_pk"
+        print(f"  -> Building PK index on {table}: ({col_str})", flush=True)
+        cursor_admin.execute(f'CREATE INDEX {idx_name} ON {table} ({col_str});')
+    cursor_admin.execute(f"ANALYZE {table};")
+
 def apply_rls():
     LOCAL_PK_MAP = {
         'region': 'r_regionkey', 'nation': 'n_nationkey', 'part': 'p_partkey',
@@ -182,6 +198,8 @@ for i in range(1, 23):
 reset_database() 
 
 print("\n--- PHASE 2: Running Exp 1 (Pure Native RLS) ---", flush=True)
+# building only PK indexes
+build_pk_indexes()
 apply_rls()
 for i in range(1, 23):
     q_id = str(i)
@@ -207,6 +225,8 @@ for i in range(1, 23):
 
 print("\n--- PHASE 3: Running Exp 2 (Secure Views) ---", flush=True)
 reset_database()
+# building only PK indexes
+build_pk_indexes()
 create_secure_views()
 for i in range(1, 23):
     q_id = str(i)
