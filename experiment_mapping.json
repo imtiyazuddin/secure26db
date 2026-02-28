@@ -13,7 +13,7 @@
         "orders": {
             "file": "atomic_p11.sql",
             "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
-            "predicate": "TRUE"
+            "predicate": "( SELECT SUM(l.l_extendedprice * (1 - l.l_discount)) FROM lineitem l WHERE l.l_orderkey = o.o_orderkey ) > 100000"
         },
         "customer": {
             "file": "atomic_p6.sql",
@@ -83,7 +83,7 @@
                 "orders": {
                     "file": "atomic_p11.sql",
                     "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
-                    "predicate": "TRUE"
+                    "predicate": "( SELECT SUM(l.l_extendedprice * (1 - l.l_discount)) FROM lineitem l WHERE l.l_orderkey = o.o_orderkey ) > 100000"
                 },
                 "customer": {
                     "file": "atomic_p6.sql",
@@ -107,7 +107,7 @@
                 "orders": {
                     "file": "atomic_p11.sql",
                     "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
-                    "predicate": "TRUE"
+                    "predicate": "( SELECT SUM(l.l_extendedprice * (1 - l.l_discount)) FROM lineitem l WHERE l.l_orderkey = o.o_orderkey ) > 100000"
                 },
                 "lineitem": {
                     "file": "atomic_p15.sql",
@@ -145,7 +145,7 @@
                 "orders": {
                     "file": "atomic_p11.sql",
                     "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
-                    "predicate": "TRUE"
+                    "predicate": "( SELECT SUM(l.l_extendedprice * (1 - l.l_discount)) FROM lineitem l WHERE l.l_orderkey = o.o_orderkey ) > 100000"
                 }
             }
         },
@@ -190,7 +190,7 @@
                 "orders": {
                     "file": "atomic_p11.sql",
                     "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
-                    "predicate": "TRUE"
+                    "predicate": "( SELECT SUM(l.l_extendedprice * (1 - l.l_discount)) FROM lineitem l WHERE l.l_orderkey = o.o_orderkey ) > 100000"
                 }
             }
         },
@@ -224,7 +224,7 @@
                 "orders": {
                     "file": "atomic_p11.sql",
                     "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
-                    "predicate": "TRUE"
+                    "predicate": "( SELECT SUM(l.l_extendedprice * (1 - l.l_discount)) FROM lineitem l WHERE l.l_orderkey = o.o_orderkey ) > 100000"
                 },
                 "part": {
                     "file": "atomic_p7.sql",
@@ -257,7 +257,7 @@
                 "orders": {
                     "file": "atomic_p11.sql",
                     "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
-                    "predicate": "TRUE"
+                    "predicate": "( SELECT SUM(l.l_extendedprice * (1 - l.l_discount)) FROM lineitem l WHERE l.l_orderkey = o.o_orderkey ) > 100000"
                 },
                 "part": {
                     "file": "atomic_p7.sql",
@@ -278,7 +278,7 @@
                 "orders": {
                     "file": "atomic_p11.sql",
                     "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
-                    "predicate": "TRUE"
+                    "predicate": "( SELECT SUM(l.l_extendedprice * (1 - l.l_discount)) FROM lineitem l WHERE l.l_orderkey = o.o_orderkey ) > 100000"
                 },
                 "customer": {
                     "file": "atomic_p6.sql",
@@ -317,7 +317,7 @@
                 "orders": {
                     "file": "atomic_p11.sql",
                     "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
-                    "predicate": "TRUE"
+                    "predicate": "( SELECT SUM(l.l_extendedprice * (1 - l.l_discount)) FROM lineitem l WHERE l.l_orderkey = o.o_orderkey ) > 100000"
                 },
                 "lineitem": {
                     "file": "atomic_p15.sql",
@@ -336,7 +336,7 @@
                 "orders": {
                     "file": "atomic_p11.sql",
                     "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
-                    "predicate": "TRUE"
+                    "predicate": "( SELECT SUM(l.l_extendedprice * (1 - l.l_discount)) FROM lineitem l WHERE l.l_orderkey = o.o_orderkey ) > 100000"
                 },
                 "customer": {
                     "file": "atomic_p6.sql",
@@ -439,7 +439,7 @@
                 "orders": {
                     "file": "atomic_p11.sql",
                     "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
-                    "predicate": "TRUE"
+                    "predicate": "( SELECT SUM(l.l_extendedprice * (1 - l.l_discount)) FROM lineitem l WHERE l.l_orderkey = o.o_orderkey ) > 100000"
                 },
                 "customer": {
                     "file": "atomic_p6.sql",
@@ -511,7 +511,7 @@
                 "orders": {
                     "file": "atomic_p11.sql",
                     "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
-                    "predicate": "TRUE"
+                    "predicate": "( SELECT SUM(l.l_extendedprice * (1 - l.l_discount)) FROM lineitem l WHERE l.l_orderkey = o.o_orderkey ) > 100000"
                 },
                 "supplier": {
                     "file": "atomic_p8.sql",
@@ -535,7 +535,7 @@
                 "orders": {
                     "file": "atomic_p11.sql",
                     "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
-                    "predicate": "TRUE"
+                    "predicate": "( SELECT SUM(l.l_extendedprice * (1 - l.l_discount)) FROM lineitem l WHERE l.l_orderkey = o.o_orderkey ) > 100000"
                 },
                 "customer": {
                     "file": "atomic_p6.sql",
