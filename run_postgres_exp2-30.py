@@ -80,11 +80,10 @@ def build_policy_indexes():
         #    col_str = ", ".join(valid_cols)
         #    print(f"  -> Building index on {table} for policy columns: ({col_str})", flush=True)
         #    cursor_admin.execute(f"CREATE INDEX idx_{table}_policy_cov ON {table} ({col_str});")
-        if valid_cols:
-            for col in valid_cols:
-                idx_name = f"idx_{table}_{col}_policy_cov"
-                print(f"  -> Building index on {table} for policy column: ({col})", flush=True)
-                cursor_admin.execute(f'CREATE INDEX "{idx_name}" ON "{table}" ("{col}");')
+        for col in valid_cols:
+            idx_name = f"idx_{table}_{col}_policy_cov"
+            print(f"  -> Building index on {table} for policy column: ({col})", flush=True)
+            cursor_admin.execute(f'CREATE INDEX "{idx_name}" ON "{table}" ("{col}");')
         cursor_admin.execute(f"ANALYZE {table};")
 
 def build_pk_indexes():
