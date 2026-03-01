@@ -167,6 +167,7 @@ def run_query_safe(query, timeout_ms=0):
 
 def reset_database():
     cursor_admin.execute(DROP_IDX_SQL)
+    print(cursor_admin.query)
     cursor_admin.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
     for (table,) in cursor_admin.fetchall():
         cursor_admin.execute(f"ALTER TABLE {table} DISABLE ROW LEVEL SECURITY;")
@@ -195,6 +196,7 @@ def build_policy_indexes():
             idx_name = f"idx_{table}_{col}_policy_cov"
             print(f"  -> Building index on {table} for policy column: ({col})", flush=True)
             cursor_admin.execute(f'CREATE INDEX "{idx_name}" ON "{table}" ("{col}");')
+            print(cursor_admin.query)
             index_done[col] = True
         cursor_admin.execute(f"ANALYZE {table};")
 
@@ -212,6 +214,7 @@ def build_pk_indexes():
         idx_name = f"idx_{table}_pk"
         print(f"  -> Building PK index on {table}: ({col_str})", flush=True)
         cursor_admin.execute(f'CREATE INDEX {idx_name} ON {table} ({col_str});')
+        print(cursor_admin.query)
     cursor_admin.execute(f"ANALYZE {table};")
 
 def apply_rls():
