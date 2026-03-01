@@ -12,6 +12,36 @@ DB_NAME = "postgres"
 MAPPING_FILE = "experiment_mapping.json"
 # ---------------------
 
+DROP_IDX_SQL = """
+DO $$
+DECLARE
+    r RECORD;
+    drop_statement TEXT;
+BEGIN
+    FOR r IN (
+        SELECT 
+            n.nspname AS schemaname, 
+            c_ind.relname AS indexname,
+            format('DROP INDEX %I.%I;', n.nspname, c_ind.relname) AS drop_cmd
+        FROM 
+            pg_index ind
+        JOIN 
+            pg_class c_ind ON c_ind.oid = ind.indexrelid
+        JOIN 
+            pg_namespace n ON n.oid = c_ind.relnamespace
+        LEFT JOIN 
+            pg_constraint cons ON cons.conindid = ind.indexrelid
+        WHERE 
+            n.nspname = 'public' 
+            AND cons.oid IS NULL 
+    )
+    LOOP
+        RAISE INFO '%', r.drop_cmd; 
+        EXECUTE r.drop_cmd;
+    END LOOP;
+END $$;
+"""
+
 TPCH_COLUMN_TO_TABLE = {
         # region
         "r_regionkey": "region",
@@ -136,6 +166,7 @@ def run_query_safe(query, timeout_ms=0):
 # --- STATE MANAGERS ---
 
 def reset_database():
+    cursor_admin.execute(DROP_IDX_SQL)
     cursor_admin.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
     for (table,) in cursor_admin.fetchall():
         cursor_admin.execute(f"ALTER TABLE {table} DISABLE ROW LEVEL SECURITY;")
