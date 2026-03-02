@@ -6,14 +6,14 @@ from contextlib import contextmanager
 
 # ---- Configuration ----
 DB_CONFIG = {
-    "dbname": "tpch",
+    "dbname": "postgres",
     "user": "postgres",
-    "password": "postgres123",
+    "password": "secure26DBPostgreSQL",
     "host": "localhost",
     "port": 5432,
 }
 
-SUDO_PASSWORD = "\n" # give your linux sudo user password, ending with \n
+SUDO_PASSWORD = "#secure26DB\n" # give your linux sudo user password, ending with \n
 
 
 # ---- Database Helper ----

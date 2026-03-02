@@ -1,0 +1,251 @@
+[SYSTEM] Loading execution plan from experiment_mapping.json...
+
+--- PHASE 1: Running Baseline (Indexed RLS) ---
+b"\nDO $$\nDECLARE\n    r RECORD;\n    drop_statement TEXT;\nBEGIN\n    FOR r IN (\n        SELECT \n            n.nspname AS schemaname, \n            c_ind.relname AS indexname,\n            format('DROP INDEX %I.%I;', n.nspname, c_ind.relname) AS drop_cmd\n        FROM \n            pg_index ind\n        JOIN \n            pg_class c_ind ON c_ind.oid = ind.indexrelid\n        JOIN \n            pg_namespace n ON n.oid = c_ind.relnamespace\n        LEFT JOIN \n            pg_constraint cons ON cons.conindid = ind.indexrelid\n        WHERE \n            n.nspname = 'public' \n            AND cons.oid IS NULL \n    )\n    LOOP\n        RAISE INFO '%', r.drop_cmd; \n        EXECUTE r.drop_cmd;\n    END LOOP;\nEND $$;\n"
+  -> Building index on partsupp for policy column: (ps_supplycost)
+b'CREATE INDEX "idx_partsupp_ps_supplycost_policy_cov" ON "partsupp" ("ps_supplycost");'
+  -> Building index on lineitem for policy column: (l_extendedprice)
+b'CREATE INDEX "idx_lineitem_l_extendedprice_policy_cov" ON "lineitem" ("l_extendedprice");'
+  -> Building index on lineitem for policy column: (l_quantity)
+b'CREATE INDEX "idx_lineitem_l_quantity_policy_cov" ON "lineitem" ("l_quantity");'
+  -> Building index on lineitem for policy column: (l_partkey)
+b'CREATE INDEX "idx_lineitem_l_partkey_policy_cov" ON "lineitem" ("l_partkey");'
+  -> Building index on partsupp for policy column: (ps_partkey)
+b'CREATE INDEX "idx_partsupp_ps_partkey_policy_cov" ON "partsupp" ("ps_partkey");'
+  -> Building index on part for policy column: (p_retailprice)
+b'CREATE INDEX "idx_part_p_retailprice_policy_cov" ON "part" ("p_retailprice");'
+  -> Building index on partsupp for policy column: (ps_suppkey)
+b'CREATE INDEX "idx_partsupp_ps_suppkey_policy_cov" ON "partsupp" ("ps_suppkey");'
+  -> Building index on part for policy column: (p_partkey)
+b'CREATE INDEX "idx_part_p_partkey_policy_cov" ON "part" ("p_partkey");'
+  -> Building index on lineitem for policy column: (l_suppkey)
+b'CREATE INDEX "idx_lineitem_l_suppkey_policy_cov" ON "lineitem" ("l_suppkey");'
+  -> Building index on orders for policy column: (o_orderdate)
+b'CREATE INDEX "idx_orders_o_orderdate_policy_cov" ON "orders" ("o_orderdate");'
+  -> Building index on customer for policy column: (c_custkey)
+b'CREATE INDEX "idx_customer_c_custkey_policy_cov" ON "customer" ("c_custkey");'
+  -> Building index on orders for policy column: (o_orderpriority)
+b'CREATE INDEX "idx_orders_o_orderpriority_policy_cov" ON "orders" ("o_orderpriority");'
+  -> Building index on orders for policy column: (o_custkey)
+b'CREATE INDEX "idx_orders_o_custkey_policy_cov" ON "orders" ("o_custkey");'
+  -> Building index on supplier for policy column: (s_comment)
+b'CREATE INDEX "idx_supplier_s_comment_policy_cov" ON "supplier" ("s_comment");'
+  -> Building index on customer for policy column: (c_acctbal)
+b'CREATE INDEX "idx_customer_c_acctbal_policy_cov" ON "customer" ("c_acctbal");'
+  -> Building index on customer for policy column: (c_comment)
+b'CREATE INDEX "idx_customer_c_comment_policy_cov" ON "customer" ("c_comment");'
+  -> Building index on supplier for policy column: (s_acctbal)
+b'CREATE INDEX "idx_supplier_s_acctbal_policy_cov" ON "supplier" ("s_acctbal");'
+  -> [LOG] Securing partsupp
+     |-- Logical Filter: NOT EXISTS (
+    SELECT 1
+    FROM lineitem l
+    WHERE l.l_partkey = ps.ps_partkey
+      AND l.l_extendedprice 
+          < ps.ps_supplycost * l.l_quantity   
+)
+     |-- Applied Policy: USING ((ps_partkey, ps_suppkey) IN (SELECT ps_partkey, ps_suppkey FROM rls_bypass_view_partsupp))
+  -> [LOG] Securing lineitem
+     |-- Logical Filter: ps.ps_partkey = l.l_partkey
+    AND ps.ps_suppkey = l.l_suppkey
+     AND p.p_partkey = l.l_partkey
+AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5
+                           AND p.p_retailprice * 1.2
+     |-- Applied Policy: USING ((l_orderkey, l_linenumber) IN (SELECT l_orderkey, l_linenumber FROM rls_bypass_view_lineitem))
+  -> [LOG] Securing customer
+     |-- Logical Filter: EXISTS (
+    SELECT 1
+    FROM orders o
+    WHERE o.o_custkey = c.c_custkey
+      AND o.o_orderdate >= DATE '1997-01-01'
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM orders o
+    WHERE o.o_custkey = c.c_custkey
+      AND o.o_orderdate >= DATE '1997-01-01'
+      AND o.o_orderpriority <> '1-URGENT'
+)
+     |-- Applied Policy: USING (c_custkey IN (SELECT c_custkey FROM rls_bypass_view_customer))
+  -> [LOG] Securing supplier
+     |-- Logical Filter: s.s_acctbal > 0
+  AND EXISTS (
+        SELECT 1
+        FROM customer c
+        WHERE c.c_acctbal > 0
+          AND c.c_comment LIKE '%' || s.s_comment || '%'
+  )
+     |-- Applied Policy: USING (s_suppkey IN (SELECT s_suppkey FROM rls_bypass_view_supplier))
+  -> [DEBUG] Firing Q1. Active Predicates:
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+  [Q1] Indexed RLS Baseline: 4.3480s
+
+  -> [DEBUG] Firing Q2. Active Predicates:
+       |-- partsupp: NOT EXISTS (     SELECT 1     FROM lineitem l     WHERE l.l_partkey = ps.ps_partkey       AND l.l_extendedprice            < ps.ps_supplycost * l.l_quantity    )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (         SELECT 1         FROM customer c         WHERE c.c_acctbal > 0           AND c.c_comment LIKE '%' || s.s_comment || '%'   )
+  [Q2] Indexed RLS Baseline: 814.5041s
+
+  -> [DEBUG] Firing Q3. Active Predicates:
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01' ) AND NOT EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01'       AND o.o_orderpriority <> '1-URGENT' )
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+  [Q3] Indexed RLS Baseline: 2.7995s
+
+  -> [DEBUG] Firing Q4. Active Predicates:
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+  [Q4] Indexed RLS Baseline: 2.5857s
+
+  -> [DEBUG] Firing Q5. Active Predicates:
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01' ) AND NOT EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01'       AND o.o_orderpriority <> '1-URGENT' )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (         SELECT 1         FROM customer c         WHERE c.c_acctbal > 0           AND c.c_comment LIKE '%' || s.s_comment || '%'   )
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+  [Q5] Indexed RLS Baseline: 407.4098s
+
+  -> [DEBUG] Firing Q6. Active Predicates:
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+  [Q6] Indexed RLS Baseline: 2.6282s
+
+  -> [DEBUG] Firing Q7. Active Predicates:
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01' ) AND NOT EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01'       AND o.o_orderpriority <> '1-URGENT' )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (         SELECT 1         FROM customer c         WHERE c.c_acctbal > 0           AND c.c_comment LIKE '%' || s.s_comment || '%'   )
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+  [Q7] Indexed RLS Baseline: 406.5262s
+
+  -> [DEBUG] Firing Q8. Active Predicates:
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01' ) AND NOT EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01'       AND o.o_orderpriority <> '1-URGENT' )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (         SELECT 1         FROM customer c         WHERE c.c_acctbal > 0           AND c.c_comment LIKE '%' || s.s_comment || '%'   )
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+  [Q8] Indexed RLS Baseline: 407.1706s
+
+  -> [DEBUG] Firing Q9. Active Predicates:
+       |-- partsupp: NOT EXISTS (     SELECT 1     FROM lineitem l     WHERE l.l_partkey = ps.ps_partkey       AND l.l_extendedprice            < ps.ps_supplycost * l.l_quantity    )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (         SELECT 1         FROM customer c         WHERE c.c_acctbal > 0           AND c.c_comment LIKE '%' || s.s_comment || '%'   )
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+  [Q9] Indexed RLS Baseline: 409.4600s
+
+  -> [DEBUG] Firing Q10. Active Predicates:
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01' ) AND NOT EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01'       AND o.o_orderpriority <> '1-URGENT' )
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+  [Q10] Indexed RLS Baseline: 2.3330s
+
+  -> [DEBUG] Firing Q11. Active Predicates:
+       |-- partsupp: NOT EXISTS (     SELECT 1     FROM lineitem l     WHERE l.l_partkey = ps.ps_partkey       AND l.l_extendedprice            < ps.ps_supplycost * l.l_quantity    )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (         SELECT 1         FROM customer c         WHERE c.c_acctbal > 0           AND c.c_comment LIKE '%' || s.s_comment || '%'   )
+  [Q11] Indexed RLS Baseline: 813.1595s
+
+  -> [DEBUG] Firing Q12. Active Predicates:
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+  [Q12] Indexed RLS Baseline: 2.4257s
+
+  -> [DEBUG] Firing Q13. Active Predicates:
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01' ) AND NOT EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01'       AND o.o_orderpriority <> '1-URGENT' )
+  [Q13] Indexed RLS Baseline: 0.9372s
+
+  -> [DEBUG] Firing Q14. Active Predicates:
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+  [Q14] Indexed RLS Baseline: 2.7078s
+
+  -> [DEBUG] Firing Q15. Active Predicates:
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (         SELECT 1         FROM customer c         WHERE c.c_acctbal > 0           AND c.c_comment LIKE '%' || s.s_comment || '%'   )
+  [Q15] Indexed RLS Baseline: 405.0699s
+
+  -> [DEBUG] Firing Q16. Active Predicates:
+       |-- partsupp: NOT EXISTS (     SELECT 1     FROM lineitem l     WHERE l.l_partkey = ps.ps_partkey       AND l.l_extendedprice            < ps.ps_supplycost * l.l_quantity    )
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01' ) AND NOT EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01'       AND o.o_orderpriority <> '1-URGENT' )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (         SELECT 1         FROM customer c         WHERE c.c_acctbal > 0           AND c.c_comment LIKE '%' || s.s_comment || '%'   )
+  [Q16] Indexed RLS Baseline: 406.7346s
+
+  -> [DEBUG] Firing Q17. Active Predicates:
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+  [Q17] Indexed RLS Baseline: 3.9455s
+
+  -> [DEBUG] Firing Q18. Active Predicates:
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01' ) AND NOT EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01'       AND o.o_orderpriority <> '1-URGENT' )
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+  [Q18] Indexed RLS Baseline: 5.5087s
+
+  -> [DEBUG] Firing Q19. Active Predicates:
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+  [Q19] Indexed RLS Baseline: 2.0544s
+
+  -> [DEBUG] Firing Q20. Active Predicates:
+       |-- partsupp: NOT EXISTS (     SELECT 1     FROM lineitem l     WHERE l.l_partkey = ps.ps_partkey       AND l.l_extendedprice            < ps.ps_supplycost * l.l_quantity    )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (         SELECT 1         FROM customer c         WHERE c.c_acctbal > 0           AND c.c_comment LIKE '%' || s.s_comment || '%'   )
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+  [Q20] Indexed RLS Baseline: 760.5456s
+
+  -> [DEBUG] Firing Q21. Active Predicates:
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (         SELECT 1         FROM customer c         WHERE c.c_acctbal > 0           AND c.c_comment LIKE '%' || s.s_comment || '%'   )
+  [Q21] Indexed RLS Baseline: 407.9735s
+
+  -> [DEBUG] Firing Q22. Active Predicates:
+       |-- customer: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01' ) AND NOT EXISTS (     SELECT 1     FROM orders o     WHERE o.o_custkey = c.c_custkey       AND o.o_orderdate >= DATE '1997-01-01'       AND o.o_orderpriority <> '1-URGENT' )
+  [Q22] Indexed RLS Baseline: 0.7766s
+
+b"\nDO $$\nDECLARE\n    r RECORD;\n    drop_statement TEXT;\nBEGIN\n    FOR r IN (\n        SELECT \n            n.nspname AS schemaname, \n            c_ind.relname AS indexname,\n            format('DROP INDEX %I.%I;', n.nspname, c_ind.relname) AS drop_cmd\n        FROM \n            pg_index ind\n        JOIN \n            pg_class c_ind ON c_ind.oid = ind.indexrelid\n        JOIN \n            pg_namespace n ON n.oid = c_ind.relnamespace\n        LEFT JOIN \n            pg_constraint cons ON cons.conindid = ind.indexrelid\n        WHERE \n            n.nspname = 'public' \n            AND cons.oid IS NULL \n    )\n    LOOP\n        RAISE INFO '%', r.drop_cmd; \n        EXECUTE r.drop_cmd;\n    END LOOP;\nEND $$;\n"
+
+--- PHASE 2: Running Exp 1 (Pure Native RLS) ---
+  -> Building PK index on region: (r_regionkey)
+b'CREATE INDEX idx_region_pk ON region (r_regionkey);'
+  -> Building PK index on nation: (n_nationkey)
+b'CREATE INDEX idx_nation_pk ON nation (n_nationkey);'
+  -> Building PK index on part: (p_partkey)
+b'CREATE INDEX idx_part_pk ON part (p_partkey);'
+  -> Building PK index on supplier: (s_suppkey)
+b'CREATE INDEX idx_supplier_pk ON supplier (s_suppkey);'
+  -> Building PK index on partsupp: (ps_partkey, ps_suppkey)
+b'CREATE INDEX idx_partsupp_pk ON partsupp (ps_partkey, ps_suppkey);'
+  -> Building PK index on customer: (c_custkey)
+b'CREATE INDEX idx_customer_pk ON customer (c_custkey);'
+  -> Building PK index on orders: (o_orderkey)
+b'CREATE INDEX idx_orders_pk ON orders (o_orderkey);'
+  -> Building PK index on lineitem: (l_orderkey, l_linenumber)
+b'CREATE INDEX idx_lineitem_pk ON lineitem (l_orderkey, l_linenumber);'
+  -> [LOG] Securing partsupp
+     |-- Logical Filter: NOT EXISTS (
+    SELECT 1
+    FROM lineitem l
+    WHERE l.l_partkey = ps.ps_partkey
+      AND l.l_extendedprice 
+          < ps.ps_supplycost * l.l_quantity   
+)
+     |-- Applied Policy: USING ((ps_partkey, ps_suppkey) IN (SELECT ps_partkey, ps_suppkey FROM rls_bypass_view_partsupp))
+  -> [LOG] Securing lineitem
+     |-- Logical Filter: ps.ps_partkey = l.l_partkey
+    AND ps.ps_suppkey = l.l_suppkey
+     AND p.p_partkey = l.l_partkey
+AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5
+                           AND p.p_retailprice * 1.2
+     |-- Applied Policy: USING ((l_orderkey, l_linenumber) IN (SELECT l_orderkey, l_linenumber FROM rls_bypass_view_lineitem))
+  -> [LOG] Securing customer
+     |-- Logical Filter: EXISTS (
+    SELECT 1
+    FROM orders o
+    WHERE o.o_custkey = c.c_custkey
+      AND o.o_orderdate >= DATE '1997-01-01'
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM orders o
+    WHERE o.o_custkey = c.c_custkey
+      AND o.o_orderdate >= DATE '1997-01-01'
+      AND o.o_orderpriority <> '1-URGENT'
+)
+     |-- Applied Policy: USING (c_custkey IN (SELECT c_custkey FROM rls_bypass_view_customer))
+  -> [LOG] Securing supplier
+     |-- Logical Filter: s.s_acctbal > 0
+  AND EXISTS (
+        SELECT 1
+        FROM customer c
+        WHERE c.c_acctbal > 0
+          AND c.c_comment LIKE '%' || s.s_comment || '%'
+  )
+     |-- Applied Policy: USING (s_suppkey IN (SELECT s_suppkey FROM rls_bypass_view_supplier))
+  -> [DEBUG] Firing Q1 (Pure RLS). Active Predicates:
+       |-- lineitem: ps.ps_partkey = l.l_partkey     AND ps.ps_suppkey = l.l_suppkey      AND p.p_partkey = l.l_partkey AND ps.ps_supplycost BETWEEN p.p_retailprice * 0.5                            AND p.p_retailprice * 1.2
+Traceback (most recent call last):
+  File "/home/securedb/SecureDB/final_run_postgres_exp2-30.py", line 336, in <module>
+    avg_time = run_query_safe(view_sql, timeout_ms=dyn_timeout_ms)
+                              ^^^^^^^^
+NameError: name 'view_sql' is not defined
