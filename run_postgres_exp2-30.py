@@ -327,7 +327,13 @@ for i in range(1, 23):
         clean_pred = pol["predicate"].replace('\n', ' ').strip()
         print(f"       |-- {tbl}: {clean_pred}", flush=True)
         
-    avg_time = run_query_safe(q_data["sql"], timeout_ms=baseline_times[q_id] * 30 * 1000)
+    # --- NEW DYNAMIC TIMEOUT LOGIC ---
+    if baseline_times[q_id] >= 900.0:
+        dyn_timeout_ms = 900000  # Hard cap at 900s if baseline timed out
+    else:
+        dyn_timeout_ms = int(baseline_times[q_id] * 10 * 1000)  # 10x the baseline
+        
+    avg_time = run_query_safe(view_sql, timeout_ms=dyn_timeout_ms)
     exp1_times[q_id] = avg_time
     
     if avg_time is None:
@@ -355,7 +361,14 @@ for i in range(1, 23):
         print(f"       |-- {tbl}: {clean_pred}", flush=True)
         
     view_sql = rewrite_for_views(q_data["sql"])
-    avg_time = run_query_safe(view_sql, timeout_ms=baseline_times[q_id] * 30 * 1000)
+    # --- NEW DYNAMIC TIMEOUT LOGIC ---
+    if baseline_times[q_id] >= 900.0:
+        dyn_timeout_ms = 900000  # Hard cap at 900s if baseline timed out
+    else:
+        dyn_timeout_ms = int(baseline_times[q_id] * 10 * 1000)  # 10x the baseline
+        
+    avg_time = run_query_safe(view_sql, timeout_ms=dyn_timeout_ms)
+    
     exp2_times[q_id] = avg_time
     
     if avg_time is None:
