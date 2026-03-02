@@ -173,6 +173,6 @@
                     "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
                 }
             }
-        },
+        }
         }
 }
