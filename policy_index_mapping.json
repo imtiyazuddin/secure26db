@@ -1,0 +1,66 @@
+{
+    "atomic_p5.sql": {
+        "policy_file": "atomic_p5",
+        "predicate": "EXISTS (\n    SELECT 1\n    FROM lineitem l\n    WHERE l.l_orderkey = o.o_orderkey\n      AND l.l_shipdate > l.l_commitdate\n      AND l.l_discount > 0.05\n)"
+    },
+    "atomic_p11.sql": {
+        "policy_file": "atomic_p11",
+        "predicate": "HAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000"
+    },
+    "atomic_p4.sql": {
+        "policy_file": "atomic_p4",
+        "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_custkey = c.c_custkey\n      AND o.o_orderstatus = 'F'\n)"
+    },
+    "atomic_p3.sql": {
+        "policy_file": "atomic_p3",
+        "predicate": "ns.n_nationkey <> nc.n_nationkey\n  AND ns.n_regionkey = nc.n_regionkey"
+    },
+    "atomic_p13.sql": {
+        "policy_file": "atomic_p13",
+        "predicate": "ABS(o.o_orderdate - l.l_shipdate)\n    < ABS(o.o_orderdate - l.l_receiptdate)"
+    },
+    "atomic_p7.sql": {
+        "policy_file": "atomic_p7",
+        "predicate": "NOT EXISTS (\n    SELECT 1\n    FROM lineitem l\n    WHERE l.l_partkey = p.p_partkey\n      AND l.l_quantity > 200\n)"
+    },
+    "atomic_p16.sql": {
+        "policy_file": "atomic_p16",
+        "predicate": "TRUE"
+    },
+    "atomic_p14.sql": {
+        "policy_file": "atomic_p14",
+        "predicate": "(l.l_receiptdate - l.l_shipdate) >\n      (\n        SELECT AVG(l2.l_receiptdate - l2.l_shipdate)\n        FROM lineitem l2\n        WHERE l2.l_shipmode = l.l_shipmode\n      )"
+    },
+    "atomic_p2.sql": {
+        "policy_file": "atomic_p2",
+        "predicate": "s.s_nationkey = c.c_nationkey\n  AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')"
+    },
+    "atomic_p1.sql": {
+        "policy_file": "atomic_p1",
+        "predicate": "l.l_shipdate >= DATE '1995-05-05' - INTERVAL '180' DAY"
+    },
+    "atomic_p9.sql": {
+        "policy_file": "atomic_p9",
+        "predicate": "NOT EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_custkey = c.c_custkey\n      AND NOT EXISTS (\n          SELECT 1\n          FROM lineitem l\n          WHERE l.l_orderkey = o.o_orderkey\n            AND l.l_shipmode IN ('TRUCK', 'MAIL')\n      )\n)"
+    },
+    "atomic_p10.sql": {
+        "policy_file": "atomic_p10",
+        "predicate": "HAVING SUM(c.c_acctbal) > 0"
+    },
+    "atomic_p12.sql": {
+        "policy_file": "atomic_p12",
+        "predicate": "HAVING SUM(\n        CASE \n           WHEN ns.n_regionkey = nc.n_regionkey\n           THEN l.l_extendedprice * (1 - l.l_discount)\n           ELSE 0\n        END\n       ) > 200000"
+    },
+    "atomic_p8.sql": {
+        "policy_file": "atomic_p8",
+        "predicate": "NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    JOIN part p ON p.p_partkey = ps.ps_partkey\n    WHERE ps.ps_suppkey = s.s_suppkey\n      AND p.p_retailprice < 500\n)"
+    },
+    "atomic_p15.sql": {
+        "policy_file": "atomic_p15",
+        "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
+    },
+    "atomic_p6.sql": {
+        "policy_file": "atomic_p6",
+        "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    JOIN lineitem l \n         ON l.l_orderkey = o.o_orderkey\n    JOIN supplier s \n         ON s.s_suppkey = l.l_suppkey\n    JOIN nation ns \n         ON ns.n_nationkey = s.s_nationkey\n    JOIN nation nc \n         ON nc.n_nationkey = c.c_nationkey\n    WHERE o.o_custkey = c.c_custkey\n      AND ns.n_regionkey = nc.n_regionkey\n      AND ns.n_nationkey <> nc.n_nationkey\n)"
+    }
+}
