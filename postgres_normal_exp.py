@@ -1,3 +1,4 @@
+import os
 import json
 import re
 import time
@@ -7,8 +8,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import subprocess
 from contextlib import contextmanager
-
-
 
 # --- CONFIGURATION ---
 HOST_IP = "localhost" 
@@ -132,7 +131,7 @@ with open(MAPPING_FILE, 'r') as f:
 global_policies = plan["policies"]
 queries_dict = plan["queries"]
 
-conn_admin = psycopg2.connect(host=HOST_IP, dbname=DB_NAME, user="postgres", password="secure26DBPostgreSQL", port=5432)
+conn_admin = psycopg2.connect(host=HOST_IP, dbname=DB_NAME, user="postgres", password="password", port=5432)
 conn_admin.autocommit = True
 cursor_admin = conn_admin.cursor()
 cursor_admin.execute("DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'tpch_tester') THEN CREATE ROLE tpch_tester LOGIN; END IF; END $$;")
@@ -181,12 +180,6 @@ def reset_database():
         cursor_admin.execute(f"DROP INDEX IF EXISTS idx_{table}_policy_cov;")
 
 def build_policy_indexes():
-    prefix_map = {
-        'region': 'r_', 'nation': 'n_', 'part': 'p_',
-        'supplier': 's_', 'partsupp': 'ps_',
-        'customer': 'c_', 'orders': 'o_', 'lineitem': 'l_'
-    }
-
     index_done = {}
 
     for _, pol_data in global_policies.items():
@@ -202,7 +195,10 @@ def build_policy_indexes():
             cursor_admin.execute(f'CREATE INDEX "{idx_name}" ON "{table}" ("{col}");')
             print(cursor_admin.query)
             index_done[col] = True
-        cursor_admin.execute(f"ANALYZE {table};")
+        
+        # Wrapped in try/except in case table variable wasn't set 
+        try: cursor_admin.execute(f"ANALYZE {table};")
+        except: pass
 
 def build_pk_indexes():
     LOCAL_PK_MAP = {
@@ -217,18 +213,33 @@ def build_pk_indexes():
         # Create a unique index name per table
         idx_name = f"idx_{table}_pk"
         print(f"  -> Building PK index on {table}: ({col_str})", flush=True)
-        cursor_admin.execute(f'CREATE INDEX {idx_name} ON {table} ({col_str});')
+        cursor_admin.execute(f'CREATE INDEX IF NOT EXISTS {idx_name} ON {table} ({col_str});')
         print(cursor_admin.query)
-    cursor_admin.execute(f"ANALYZE {table};")
+        cursor_admin.execute(f"ANALYZE {table};")
 
+def load_policy_files(policies_dir="policies"):
+    policies = {}
+    if not os.path.exists(policies_dir):
+        print(f"  [!] Directory '{policies_dir}' not found.", flush=True)
+        return policies
+        
+    for filename in os.listdir(policies_dir):
+        if not filename.endswith(".sql"): continue
+        filepath = os.path.join(policies_dir, filename)
+        with open(filepath, "r") as f:
+            raw_sql = f.read()
+        # Strip comments safely to get bare SQL for execution
+        clean_sql = re.sub(r'--.*', '', re.sub(r'/\*.*?\*/', '', raw_sql, flags=re.DOTALL)).strip()
+        policies[filename] = clean_sql.replace(';', '')
+    return policies
+
+# --- EXECUTION ---
 
 baseline_times = {}
 
-
-print("\n--- Normal Query ---", flush=True)
+print("\n--- Phase 1: Normal Query (22 TPC-H) ---", flush=True)
 reset_database()
 build_pk_indexes()
-build_policy_indexes()
 
 for i in range(1, 23):
     q_id = str(i)
@@ -244,19 +255,35 @@ for i in range(1, 23):
         print(f"       |-- {tbl}: {clean_pred}", flush=True)
         
     avg_time = run_query_safe(q_data["sql"], timeout_ms=900000) # 15-Min Hard Limit
+    baseline_times[q_id] = avg_time
     
     if avg_time == float('inf'):
-        baseline_times[q_id] = 900.0 # Store math denominator for next phases
         print(f"  [Q{q_id}] Normal Query: TIMEOUT (> 900s)\n", flush=True)
     elif avg_time is None:
-        print(f"  [Q{q_id}] Normal Query: ERR\n", flush=True)
+        print(f"  [Q{q_id}] Normal Query: ERROR\n", flush=True)
     else:
-        baseline_times[q_id] = avg_time
         print(f"  [Q{q_id}] Normal Query: {avg_time:.4f}s\n", flush=True)
-        
+
+print("\n--- Phase 2: Policy Queries ---", flush=True)
+reset_database()
+build_policy_indexes()
+
+policy_queries = load_policy_files()
+
+for filename in sorted(policy_queries.keys()):
+    sql = policy_queries[filename]
+    print(f"  -> [DEBUG] Firing Policy Query: {filename}", flush=True)
+    
+    avg_time = run_query_safe(sql, timeout_ms=900000) # 15-Min Hard Limit
+    
+    if avg_time == float('inf'):
+        print(f"  [{filename}] Normal Query: TIMEOUT (> 900s)\n", flush=True)
+    elif avg_time is None:
+        print(f"  [{filename}] Normal Query: ERROR\n", flush=True)
+    else:
+        print(f"  [{filename}] Normal Query: {avg_time:.4f}s\n", flush=True)
+
 cursor_tester.close()
 conn_tester.close()
 cursor_admin.close()
 conn_admin.close()
-
-
