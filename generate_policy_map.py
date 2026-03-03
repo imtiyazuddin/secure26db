@@ -12,18 +12,30 @@ PK_MAP = {
     'customer': 'c_custkey', 'orders': 'o_orderkey', 'lineitem': 'l_orderkey, l_linenumber'
 }
 
-def extract_predicate(sql):
-    # 1. Try to find a standard WHERE clause
-    match_where = re.search(r'\bWHERE\s+(.*)', sql, re.IGNORECASE | re.DOTALL)
-    if match_where:
-        return match_where.group(1).replace(';', '').strip()
+def extract_all_conditions(sql):
+    conditions = []
     
-    # 2. If no WHERE exists, look for a HAVING clause (Atomic Aggregate Policies)
-    match_having = re.search(r'\bHAVING\s+(.*)', sql, re.IGNORECASE | re.DOTALL)
-    if match_having:
-        return "HAVING " + match_having.group(1).replace(';', '').strip()
+    # 1. Extract JOIN ... ON conditions
+    # Stops when it hits the next major SQL keyword
+    on_clauses = re.findall(r'\bON\s+(.*?)(?=\b(?:INNER|LEFT|RIGHT|FULL|CROSS|OUTER|JOIN|WHERE|GROUP|HAVING|ORDER|LIMIT|;)\b|$)', sql, re.IGNORECASE | re.DOTALL)
+    if on_clauses:
+        conditions.extend([c.strip() for c in on_clauses])
         
-    return "TRUE"
+    # 2. Extract WHERE condition
+    match_where = re.search(r'\bWHERE\s+(.*?)(?=\b(?:GROUP|HAVING|ORDER|LIMIT|;)\b|$)', sql, re.IGNORECASE | re.DOTALL)
+    if match_where:
+        conditions.append(match_where.group(1).strip())
+        
+    # 3. Extract HAVING condition
+    match_having = re.search(r'\bHAVING\s+(.*?)(?=\b(?:ORDER|LIMIT|;)\b|$)', sql, re.IGNORECASE | re.DOTALL)
+    if match_having:
+        conditions.append(match_having.group(1).strip())
+        
+    if not conditions:
+        return "TRUE"
+        
+    # Combine them all into one massive string for the index generator to parse
+    return " AND ".join(conditions)
 
 def generate_policy_mapping():
     if not os.path.exists(POLICIES_DIR):
@@ -36,8 +48,6 @@ def generate_policy_mapping():
         if not filename.endswith(".sql"):
             continue
 
-        name_without_ext = os.path.splitext(filename)[0]
-
         filepath = os.path.join(POLICIES_DIR, filename)
         with open(filepath, "r") as f:
             raw_sql = f.read()
@@ -45,15 +55,22 @@ def generate_policy_mapping():
         # Strip comments to safely parse the SQL
         clean_sql = re.sub(r'--.*', '', re.sub(r'/\*.*?\*/', '', raw_sql, flags=re.DOTALL)).strip()
 
-        # Extract the predicate
-        predicate = extract_predicate(clean_sql)
+        # Identify the base table
+        match = re.search(r'\bFROM\s+([a-zA-Z0-9_]+)', clean_sql, re.IGNORECASE)
+        table_name = "unknown"
+        if match:
+            extracted_table = match.group(1).lower()
+            if extracted_table in PK_MAP:
+                table_name = extracted_table
 
-        # Map the filename directly to its attributes
+        # Extract all ON, WHERE, and HAVING predicates
+        combined_predicate = extract_all_conditions(clean_sql)
+
         policy_mapping[filename] = {
-            "policy_file": name_without_ext,
-            "predicate": predicate
+            "table": table_name,
+            "predicate": combined_predicate
         }
-        print(f" -> Processed {filename} {predicate}")
+        print(f" -> Processed {filename} (Table: {table_name})")
 
     with open(OUTPUT_JSON, 'w') as f:
         json.dump(policy_mapping, f, indent=4)
