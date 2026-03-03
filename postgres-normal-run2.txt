@@ -1,0 +1,163 @@
+[SYSTEM] Loading policy index mapping from policy_index_mapping.json...
+[SYSTEM] Loading TPC-H queries from queries/all_queries.sql...
+
+--- Phase 1: Normal Query (22 TPC-H) ---
+  -> Building PK index on region: (r_regionkey)
+  -> Building PK index on nation: (n_nationkey)
+  -> Building PK index on part: (p_partkey)
+  -> Building PK index on supplier: (s_suppkey)
+  -> Building PK index on partsupp: (ps_partkey, ps_suppkey)
+  -> Building PK index on customer: (c_custkey)
+  -> Building PK index on orders: (o_orderkey)
+  -> Building PK index on lineitem: (l_orderkey, l_linenumber)
+  -> [DEBUG] Firing Q1...
+  [Q1] Normal Query: 1.2213s
+
+  -> [DEBUG] Firing Q2...
+  [Q2] Normal Query: 1.5355s
+
+  -> [DEBUG] Firing Q3...
+  [Q3] Normal Query: 0.3585s
+
+  -> [DEBUG] Firing Q4...
+  [Q4] Normal Query: 0.7832s
+
+  -> [DEBUG] Firing Q5...
+  [Q5] Normal Query: 0.3485s
+
+  -> [DEBUG] Firing Q6...
+  [Q6] Normal Query: 0.2183s
+
+  -> [DEBUG] Firing Q7...
+  [Q7] Normal Query: 0.2918s
+
+  -> [DEBUG] Firing Q8...
+  [Q8] Normal Query: 0.4731s
+
+  -> [DEBUG] Firing Q9...
+  [Q9] Normal Query: 0.8186s
+
+  -> [DEBUG] Firing Q10...
+  [Q10] Normal Query: 0.7291s
+
+  -> [DEBUG] Firing Q11...
+  [Q11] Normal Query: 0.1749s
+
+  -> [DEBUG] Firing Q12...
+  [Q12] Normal Query: 0.3670s
+
+  -> [DEBUG] Firing Q13...
+  [Q13] Normal Query: 1.9383s
+
+  -> [DEBUG] Firing Q14...
+  [Q14] Normal Query: 0.2165s
+
+  -> [DEBUG] Firing Q15...
+  [Q15] Normal Query: 0.2543s
+
+  -> [DEBUG] Firing Q16...
+  [Q16] Normal Query: 0.1687s
+
+  -> [DEBUG] Firing Q17...
+  [Q17] Normal Query: TIMEOUT (> 3600s)
+
+  -> [DEBUG] Firing Q18...
+  [Q18] Normal Query: 4.3660s
+
+  -> [DEBUG] Firing Q19...
+  [Q19] Normal Query: 0.2784s
+
+  -> [DEBUG] Firing Q20...
+  [Q20] Normal Query: TIMEOUT (> 3600s)
+
+  -> [DEBUG] Firing Q21...
+  [Q21] Normal Query: 1.2595s
+
+  -> [DEBUG] Firing Q22...
+  [Q22] Normal Query: 0.1670s
+
+
+--- Phase 2: Policy Queries ---
+  -> Building PK index on region: (r_regionkey)
+  -> Building PK index on nation: (n_nationkey)
+  -> Building PK index on part: (p_partkey)
+  -> Building PK index on supplier: (s_suppkey)
+  -> Building PK index on partsupp: (ps_partkey, ps_suppkey)
+  -> Building PK index on customer: (c_custkey)
+  -> Building PK index on orders: (o_orderkey)
+  -> Building PK index on lineitem: (l_orderkey, l_linenumber)
+  -> Building index on orders for policy column: (o_orderkey)
+  -> Building index on lineitem for policy column: (l_discount)
+  -> Building index on lineitem for policy column: (l_shipdate)
+  -> Building index on lineitem for policy column: (l_orderkey)
+  -> Building index on lineitem for policy column: (l_commitdate)
+  -> Building index on lineitem for policy column: (l_extendedprice)
+  -> Building index on customer for policy column: (c_custkey)
+  -> Building index on orders for policy column: (o_orderstatus)
+  -> Building index on orders for policy column: (o_custkey)
+  -> Building index on nation for policy column: (n_regionkey)
+  -> Building index on supplier for policy column: (s_suppkey)
+  -> Building index on supplier for policy column: (s_nationkey)
+  -> Building index on lineitem for policy column: (l_suppkey)
+  -> Building index on nation for policy column: (n_nationkey)
+  -> Building index on customer for policy column: (c_nationkey)
+  -> Building index on orders for policy column: (o_orderdate)
+  -> Building index on lineitem for policy column: (l_receiptdate)
+  -> Building index on lineitem for policy column: (l_partkey)
+  -> Building index on lineitem for policy column: (l_quantity)
+  -> Building index on part for policy column: (p_partkey)
+  -> Building index on lineitem for policy column: (l_shipmode)
+  -> Building index on orders for policy column: (o_orderpriority)
+  -> Building index on customer for policy column: (c_acctbal)
+  -> Building index on partsupp for policy column: (ps_suppkey)
+  -> Building index on part for policy column: (p_retailprice)
+  -> Building index on partsupp for policy column: (ps_partkey)
+  -> [DEBUG] Firing Policy Query: atomic_p1.sql
+  [atomic_p1.sql] Normal Query: 10.2955s
+
+  -> [DEBUG] Firing Policy Query: atomic_p10.sql
+  [atomic_p10.sql] Normal Query: 0.6023s
+
+  -> [DEBUG] Firing Policy Query: atomic_p11.sql
+  [atomic_p11.sql] Normal Query: 9.9464s
+
+  -> [DEBUG] Firing Policy Query: atomic_p12.sql
+  [atomic_p12.sql] Normal Query: 2.7802s
+
+  -> [DEBUG] Firing Policy Query: atomic_p13.sql
+  [atomic_p13.sql] Normal Query: 38.1900s
+
+  -> [DEBUG] Firing Policy Query: atomic_p14.sql
+  [atomic_p14.sql] Normal Query: TIMEOUT (> 3600s)
+
+  -> [DEBUG] Firing Policy Query: atomic_p15.sql
+  [atomic_p15.sql] Normal Query: 71.9048s
+
+  -> [DEBUG] Firing Policy Query: atomic_p16.sql
+[!] Error: can't execute an empty query
+  [atomic_p16.sql] Normal Query: ERROR
+
+  -> [DEBUG] Firing Policy Query: atomic_p2.sql
+  [atomic_p2.sql] Normal Query: 1.0602s
+
+  -> [DEBUG] Firing Policy Query: atomic_p3.sql
+  [atomic_p3.sql] Normal Query: 6.2166s
+
+  -> [DEBUG] Firing Policy Query: atomic_p4.sql
+  [atomic_p4.sql] Normal Query: 0.4914s
+
+  -> [DEBUG] Firing Policy Query: atomic_p5.sql
+  [atomic_p5.sql] Normal Query: 3.2689s
+
+  -> [DEBUG] Firing Policy Query: atomic_p6.sql
+  [atomic_p6.sql] Normal Query: TIMEOUT (> 3600s)
+
+  -> [DEBUG] Firing Policy Query: atomic_p7.sql
+  [atomic_p7.sql] Normal Query: 0.5661s
+
+  -> [DEBUG] Firing Policy Query: atomic_p8.sql
+  [atomic_p8.sql] Normal Query: 0.0690s
+
+  -> [DEBUG] Firing Policy Query: atomic_p9.sql
+  [atomic_p9.sql] Normal Query: 1.0778s
+
