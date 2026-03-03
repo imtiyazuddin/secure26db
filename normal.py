@@ -208,8 +208,13 @@ baseline_times = {}
 print("\n--- Phase 1: Normal Query (22 TPC-H) ---", flush=True)
 reset_database()
 build_pk_indexes()
+
+# run TPCH 22 queries here
+
+reset_database()
 build_policy_indexes()
 
+# run policy queries here
 
 cursor_tester.close()
 conn_tester.close()
