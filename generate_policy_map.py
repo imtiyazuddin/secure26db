@@ -36,6 +36,8 @@ def generate_policy_mapping():
         if not filename.endswith(".sql"):
             continue
 
+        name_without_ext = os.path.splitext(filename)[0]
+
         filepath = os.path.join(POLICIES_DIR, filename)
         with open(filepath, "r") as f:
             raw_sql = f.read()
@@ -43,23 +45,15 @@ def generate_policy_mapping():
         # Strip comments to safely parse the SQL
         clean_sql = re.sub(r'--.*', '', re.sub(r'/\*.*?\*/', '', raw_sql, flags=re.DOTALL)).strip()
 
-        # Identify the base table
-        match = re.search(r'\bFROM\s+([a-zA-Z0-9_]+)', clean_sql, re.IGNORECASE)
-        table_name = "unknown"
-        if match:
-            extracted_table = match.group(1).lower()
-            if extracted_table in PK_MAP:
-                table_name = extracted_table
-
         # Extract the predicate
         predicate = extract_predicate(clean_sql)
 
         # Map the filename directly to its attributes
         policy_mapping[filename] = {
-            "table": table_name,
+            "policy_file": name_without_ext,
             "predicate": predicate
         }
-        print(f" -> Processed {filename} (Table: {table_name})")
+        print(f" -> Processed {filename} {predicate}")
 
     with open(OUTPUT_JSON, 'w') as f:
         json.dump(policy_mapping, f, indent=4)
