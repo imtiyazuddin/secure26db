@@ -1,10 +1,16 @@
+import sys
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
+if len(sys.argv) != 2:
+    print("Usage: python plot_ratios.py <input.csv>")
+    sys.exit(1)
+
+CSV_FILE = sys.argv[1]
 TIMEOUT = 900
-CSV_FILE = "atomic_policy_timing.csv"
 
 df = pd.read_csv(CSV_FILE)
 
