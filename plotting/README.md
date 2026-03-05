@@ -14,7 +14,9 @@ This pipeline has two steps:
 | Script | Input | Output |
 |---|---|---|
 | `parse_log.py` | `experiment_log.txt` | `plot_data.csv` |
-| `plot_ratios.py` | `plot_data.csv` | `query_ratios_valid.png` |
+| `plot_all_queries.py` | `plot_data.csv` | `query_all_ratios_valid.png` |
+| `plot_valid_queries.py` | `plot_data.csv` | `query_valid_ratios_valid.png` |
+
 
 ---
 
