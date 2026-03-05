@@ -243,27 +243,49 @@ def reset_database():
         cursor_admin.execute(f"DROP INDEX IF EXISTS idx_{table}_policy_cov;")
 
 def build_policy_indexes():
-    prefix_map = {
-        'region': 'r_', 'nation': 'n_', 'part': 'p_',
-        'supplier': 's_', 'partsupp': 'ps_',
-        'customer': 'c_', 'orders': 'o_', 'lineitem': 'l_'
+    LOCAL_PK_MAP = {
+        'region':   'r_regionkey',
+        'nation':   'n_nationkey',
+        'part':     'p_partkey',
+        'supplier': 's_suppkey',
+        'partsupp': 'ps_partkey, ps_suppkey',
+        'customer': 'c_custkey',
+        'orders':   'o_orderkey',
+        'lineitem': 'l_orderkey, l_linenumber'
     }
 
     index_done = {}
 
+    # ── Policy indexes ────────────────────────────────────────────────────────
     for _, pol_data in global_policies.items():
         predicate = pol_data["predicate"]
         all_cols = set(re.findall(r'\b([a-z]+_[a-z0-9_]+)\b', predicate.lower()))
-        
+
         for col in all_cols:
             if index_done.get(col):
                 continue
             table = TPCH_COLUMN_TO_TABLE[col]
             idx_name = f"idx_{table}_{col}_policy_cov"
-            print(f"  -> Building index on {table} for policy column: ({col})", flush=True)
+            print(f"  -> Building policy index on {table} for column: ({col})", flush=True)
             cursor_admin.execute(f'CREATE INDEX "{idx_name}" ON "{table}" ("{col}");')
             print(cursor_admin.query)
             index_done[col] = True
+        cursor_admin.execute(f"ANALYZE {table};")
+
+    # ── PK indexes (skip any col already indexed above) ───────────────────────
+    for table, pk_col_str in LOCAL_PK_MAP.items():
+        pk_cols = [c.strip() for c in pk_col_str.split(",")]
+        # Skip entire PK if every constituent column is already indexed
+        if all(index_done.get(c) for c in pk_cols):
+            print(f"  -> Skipping PK index on {table}: all PK cols already indexed", flush=True)
+            continue
+        col_str = ", ".join(f'"{c}"' for c in pk_cols)
+        idx_name = f"idx_{table}_pk"
+        print(f"  -> Building PK index on {table}: ({', '.join(pk_cols)})", flush=True)
+        cursor_admin.execute(f'CREATE INDEX "{idx_name}" ON "{table}" ({col_str});')
+        print(cursor_admin.query)
+        for c in pk_cols:
+            index_done[c] = True
         cursor_admin.execute(f"ANALYZE {table};")
 
 def build_pk_indexes():
