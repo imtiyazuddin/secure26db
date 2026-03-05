@@ -11,11 +11,11 @@ This pipeline has two steps:
 
 ## Scripts
 
-| Script | Input | Output |
+| Script | Input | Output | purpose |
 |---|---|---|
-| `parse_log.py` | `experiment_log.txt` | `plot_data.csv` |
-| `plot_all_queries.py` | `plot_data.csv` | `query_all_ratios_valid.png` |
-| `plot_valid_queries.py` | `plot_data.csv` | `query_valid_ratios_valid.png` |
+| `parse_log.py` | `experiment_log.txt` | `plot_data.csv` | generate data file of expt log|
+| `plot_all_queries.py` | `plot_data.csv` | `query_all_ratios_valid.png` | plot all query ratios |
+| `plot_valid_queries.py` | `plot_data.csv` | `query_valid_ratios_valid.png` | plot only those query where baseline finished |
 
 
 ---
@@ -62,13 +62,13 @@ Takes the CSV produced in Step 1 and generates a grouped bar chart showing the p
 Run:
 
 ```bash
-python plot_ratios.py <input_data.csv>
+python plot_all_queries.py <input_data.csv>
 ```
 
 **Example:**
 
 ```bash
-python plot_ratios.py plot_data.csv
+python plot_all_queries.py plot_data.csv
 ```
 
 ### Output
@@ -88,7 +88,7 @@ python plot_ratios.py plot_data.csv
 python parse_log.py experiment_log.txt plot_data.csv
 
 # Step 2: generate the plot
-python plot_ratios.py plot_data.csv
+python plot_all_queries.py plot_data.csv
 ```
 
 ---
