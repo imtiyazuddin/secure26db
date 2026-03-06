@@ -12,7 +12,7 @@ from contextlib import contextmanager
 DB_CONFIG = {
     "dbname": "postgres",
     "user": "postgres",
-    "password": "secure26DBPosrtgreSQL",
+    "password": "password",
     "host": "localhost",
     "port": 5432,
 }
@@ -73,7 +73,7 @@ def wait_until_ready(timeout=30):
 # --- CONFIGURATION ---
 HOST_IP = "localhost" 
 DB_NAME = "postgres" 
-MAPPING_FILE = "experiment_mapping.json"
+MAPPING_FILE = "current_experiment_mapping.json"
 # ---------------------
 
 DROP_IDX_SQL = """
@@ -192,7 +192,7 @@ with open(MAPPING_FILE, 'r') as f:
 global_policies = plan["policies"]
 queries_dict = plan["queries"]
 
-conn_admin = psycopg2.connect(host=HOST_IP, dbname=DB_NAME, user="postgres", password="secure26DBPosrtgreSQL", port=5432)
+conn_admin = psycopg2.connect(host=HOST_IP, dbname=DB_NAME, user="postgres", password="password", port=5432)
 conn_admin.autocommit = True
 cursor_admin = conn_admin.cursor()
 cursor_admin.execute("DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'tpch_tester') THEN CREATE ROLE tpch_tester LOGIN; END IF; END $$;")
@@ -217,12 +217,12 @@ def run_query_safe(query, timeout_ms=0):
     # -----------------------------------    
     times = []
     try:
-        for _ in range(3):
+        for _ in range(4):
             start = time.perf_counter()
             cursor_tester.execute(query)
             cursor_tester.fetchall()
             times.append(time.perf_counter() - start)
-        return sum(times) / len(times)
+        return sum(times[1:]) / 3.0 
     except psycopg2.errors.QueryCanceled:
         return float('inf')
     except Exception as e:
@@ -252,6 +252,12 @@ def build_policy_indexes():
         'customer': 'c_custkey',
         'orders':   'o_orderkey',
         'lineitem': 'l_orderkey, l_linenumber'
+    }
+
+    prefix_map = {
+        'region': 'r_', 'nation': 'n_', 'part': 'p_',
+        'supplier': 's_', 'partsupp': 'ps_',
+        'customer': 'c_', 'orders': 'o_', 'lineitem': 'l_'
     }
 
     index_done = {}
