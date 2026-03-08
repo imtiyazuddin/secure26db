@@ -2,6 +2,8 @@ import json
 import re
 import time
 import argparse
+from typing import Optional, Callable
+
 import psycopg2
 import psycopg2.errors
 import matplotlib.pyplot as plt
@@ -110,6 +112,7 @@ def run_query_safe(query, timeout_ms=0):
     else:
         cursor_tester.execute("SET statement_timeout = 0")
 
+
     cursor_tester.execute("SET maintenance_work_mem = '2GB';")
     cursor_tester.execute("SET default_statistics_target = 500;")
     cursor_tester.execute("SET random_page_cost = 4;")
@@ -119,7 +122,7 @@ def run_query_safe(query, timeout_ms=0):
 
     times = []
     try:
-        for _ in range(3):
+        for _ in range(1):
             start = time.perf_counter()
             cursor_tester.execute(query)
             cursor_tester.fetchall()
@@ -168,7 +171,6 @@ def reset_database():
         cursor_admin.execute(f"DROP VIEW IF EXISTS {table}_view CASCADE;")
         cursor_admin.execute(f"DROP VIEW IF EXISTS rls_bypass_view_{table} CASCADE;")
         cursor_admin.execute(f"DROP FUNCTION IF EXISTS rls_bypass_fn_{table}   CASCADE;")
-        #cursor_admin.execute(f"DROP INDEX IF EXISTS idx_{table}_policy_cov;")
 
 
 def build_policy_indexes():
@@ -233,6 +235,31 @@ def build_fk_indexes():
 
 
 def apply_rls():
+    print("****** Applying Standard RLS ********")
+    for table, pol_data in global_policies.items():
+        policy_sql = pol_data["raw_sql"]
+        logical_predicate = pol_data["predicate"]
+
+        pk_col = LOCAL_PK_MAP[table]
+        pk_left = f"({pk_col})" if "," in pk_col else pk_col
+
+        bypass_view = f"rls_bypass_view_{table}"
+        cursor_admin.execute(f"CREATE OR REPLACE VIEW {bypass_view} AS {policy_sql};")
+        cursor_admin.execute(f"GRANT SELECT ON {bypass_view} TO tpch_tester;")
+
+        actual_rls_predicate = f"{pk_left} IN (SELECT {pk_col} FROM {bypass_view})"
+
+        print(f"  -> [LOG] Securing {table}", flush=True)
+        print(f"     |-- Logical Filter: {logical_predicate}", flush=True)
+        print(f"     |-- Applied Policy: USING ({actual_rls_predicate})", flush=True)
+
+        cursor_admin.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;")
+        cursor_admin.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY;")
+        cursor_admin.execute(f"CREATE POLICY tpch_rls_pol ON {table} FOR SELECT USING ({actual_rls_predicate});")
+
+
+def apply_security_definer_rls():
+    print("****** Applying Security Definer RLS ********")
     for table, pol_data in global_policies.items():
         policy_sql = pol_data["raw_sql"]
         pk_col     = LOCAL_PK_MAP[table]
@@ -291,8 +318,7 @@ def apply_rls():
             f"CREATE POLICY tpch_rls_pol ON {table} FOR SELECT "
             f"USING ({actual_rls_predicate});"
         )
-        cursor_admin.execute(f"ANALYZE {table};")
-
+        
 def create_secure_views():
     for table, pol_data in global_policies.items():
         policy_sql  = pol_data["raw_sql"]
@@ -319,11 +345,26 @@ def rewrite_for_views(sql):
 
 
 # ---- Experiment phases ----
-def indexed_RLS_expt():
+def indexed_RLS_expt(apply_rls_fn: Callable):
+    """
+        Run the baseline (Indexed RLS) experiment.
+
+        Parameters
+        ----------
+        apply_rls_fn : Callable[[], None], optional
+            A zero-arg function that applies RLS/policies prior to running queries.
+            Examples: `apply_security_definer_rls`, `apply_rls`.
+            If not provided, defaults to `apply_security_definer_rls` (if available).
+        """
     print("\n--- PHASE 1: Running Baseline (Indexed RLS) ---", flush=True)
+
+
     build_policy_indexes()
     build_fk_indexes()
-    apply_rls()
+
+    apply_fn = choose_RLS_imple(apply_rls_fn)
+    # Apply RLS/policies
+    apply_fn()
 
     for i in range(1, 23):
         q_id = str(i)
@@ -349,11 +390,29 @@ def indexed_RLS_expt():
             print(f"  [Q{q_id}] Indexed RLS Baseline: {avg_time:.4f}s\n", flush=True)
 
 
-def pure_RLS_expt():
+def choose_RLS_imple(apply_rls_fn):
+    # Choose default if not provided
+    if apply_rls_fn is None:
+        # Fallback to the original default if it exists in scope
+        try:
+            apply_fn = apply_security_definer_rls
+        except NameError as e:
+            raise ValueError(
+                "No RLS function provided and default 'apply_security_definer_rls' is not available."
+            ) from e
+    else:
+        apply_fn = apply_rls_fn
+    return apply_fn
+
+
+def pure_RLS_expt(apply_rls_fn: Optional[Callable[[], None]] = None) -> None:
     print("\n--- PHASE 2: Running Exp 1 (Pure Native RLS) ---", flush=True)
     build_pk_indexes()
     build_fk_indexes()
-    apply_rls()
+
+    apply_fn = choose_RLS_imple(apply_rls_fn)
+    # Apply RLS/policies
+    apply_fn()
 
     for i in range(1, 23):
         q_id = str(i)
@@ -473,6 +532,20 @@ def parse_args():
             "Example: --phase 1 2"
         ),
     )
+
+    # IMPORTANT: default=None so it is not "taken" unless valid for the chosen phase(s)
+    parser.add_argument(
+        "--rls-type",
+        nargs="+",
+        choices=["s", "n"],
+        default=None,
+        help=(
+            "Which RLS type to run (only valid for phases 1/2 or all). Choices:\n"
+            "  s — Phase 1: With Security Definer\n"
+            "  n — Phase 2: Standard RLS predicate\n"
+            "Example: --rls-type n"
+        ),
+    )
     parser.add_argument(
         "--output",
         default="postgres_exp2_clean_4P.png",
@@ -519,6 +592,26 @@ def main():
     global global_policies, queries_dict
 
     args = parse_args()
+
+    phase_set = set(args.phase)
+
+    # If user chose "all", treat it as including 1 and 2 (and 3)
+    if "all" in phase_set:
+        phases_include_1_or_2 = True
+    else:
+        phases_include_1_or_2 = bool(phase_set.intersection({"1", "2"}))
+
+    # If phase is ONLY 3, rls-type must not be provided
+    if not phases_include_1_or_2:
+        if args.rls_type is not None:
+            print("--rls-type can be used only with --phase 1 and/or 2 (or both).", flush=True)
+        # Optional: keep it as None explicitly
+        args.rls_type = None
+    else:
+        # Assign default if user didn't specify it
+        if args.rls_type is None:
+            args.rls_type = ["s"]
+
     run_all = "all" in args.phase
     run_indexed = run_all or "1" in args.phase
     run_pure    = run_all or "2"    in args.phase
@@ -531,12 +624,18 @@ def main():
     global_policies = plan["policies"]
     queries_dict    = plan["queries"]
 
+    if args.rls_type[0] == "s":
+        fn = apply_security_definer_rls
+    else:
+        fn = apply_rls
+    print(fn)
+
     init_connections()
 
     try:
         if run_indexed:
             reset_database()
-            indexed_RLS_expt()
+            indexed_RLS_expt(apply_rls_fn=fn)
 
         if run_pure:
             reset_database()
@@ -544,7 +643,7 @@ def main():
             restart_postgres()
             wait_until_ready()
             init_connections()
-            pure_RLS_expt()
+            pure_RLS_expt(apply_rls_fn=fn)
 
         if run_views:
             reset_database()
