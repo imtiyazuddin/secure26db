@@ -1,0 +1,151 @@
+{
+    "metadata": {
+        "description": "TPC-H Query to Policy Mapping - TIERED ARCHITECTURE (No Cycles)",
+        "architecture": {
+            "tier_0": ["nation", "region"],
+            "tier_1": ["customer", "supplier", "part"],
+            "tier_2": ["orders", "partsupp"],
+            "tier_3": ["lineitem"]
+        },
+        "rule": "Policy on tier N can only reference tables from tier < N",
+        "max_depth": 3,
+        "policies_loaded": [
+            "customer",
+            "supplier",
+            "partsupp",
+            "lineitem"
+        ]
+    },
+    "policies": {
+        "customer": {
+            "tier": 1,
+            "file": "p1_tiered.sql",
+            "description": "Customers from EUROPE or AMERICA regions with positive balance",
+            "references": ["nation", "region"],
+            "raw_sql": "SELECT c.*\nFROM customer c\nWHERE c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )",
+            "predicate": "c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )"
+        },
+        "supplier": {
+            "tier": 1,
+            "file": "p2_tiered.sql",
+            "description": "Suppliers from EUROPE with positive balance",
+            "references": ["nation", "region"],
+            "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
+            "predicate": "s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
+        },
+        "partsupp": {
+            "tier": 2,
+            "file": "p4_tiered.sql",
+            "description": "Partsupp from suppliers with positive balance and sufficient stock",
+            "references": ["supplier"],
+            "references_with_policies": ["supplier (p2)"],
+            "raw_sql": "SELECT ps.*\nFROM partsupp ps\nWHERE ps.ps_availqty > 100\n  AND EXISTS (\n    SELECT 1\n    FROM supplier s\n    WHERE s.s_suppkey = ps.ps_suppkey\n      AND s.s_acctbal > 0\n  )",
+            "predicate": "ps.ps_availqty > 100\n  AND EXISTS (\n    SELECT 1\n    FROM supplier s\n    WHERE s.s_suppkey = ps.ps_suppkey\n      AND s.s_acctbal > 0\n  )"
+        },
+        "lineitem": {
+            "tier": 3,
+            "file": "p3_tiered.sql",
+            "description": "Lineitem from high-priority orders with available partsupp",
+            "references": ["orders", "partsupp"],
+            "references_with_policies": ["partsupp (p4)"],
+            "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
+            "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+        }
+    },
+    "dependency_chains": {
+        "customer": "customer -> nation/region (STOPS at Tier 0)",
+        "supplier": "supplier -> nation/region (STOPS at Tier 0)",
+        "partsupp": "partsupp -> supplier(p2) -> nation/region (STOPS at Tier 0)",
+        "lineitem": "lineitem -> orders (no policy) + partsupp(p4) -> supplier(p2) -> nation/region (STOPS at Tier 0)"
+    },
+    "queries": {
+        "1": {
+            "tables_used": ["lineitem"],
+            "applied_policies": ["lineitem"]
+        },
+        "2": {
+            "tables_used": ["partsupp", "part", "region", "supplier", "nation"],
+            "applied_policies": ["partsupp", "supplier"]
+        },
+        "3": {
+            "tables_used": ["customer", "lineitem", "orders"],
+            "applied_policies": ["customer", "lineitem"]
+        },
+        "4": {
+            "tables_used": ["lineitem", "orders"],
+            "applied_policies": ["lineitem"]
+        },
+        "5": {
+            "tables_used": ["orders", "region", "customer", "supplier", "lineitem", "nation"],
+            "applied_policies": ["customer", "supplier", "lineitem"]
+        },
+        "6": {
+            "tables_used": ["lineitem"],
+            "applied_policies": ["lineitem"]
+        },
+        "7": {
+            "tables_used": ["orders", "customer", "supplier", "lineitem", "nation"],
+            "applied_policies": ["customer", "supplier", "lineitem"]
+        },
+        "8": {
+            "tables_used": ["part", "orders", "region", "customer", "supplier", "lineitem", "nation"],
+            "applied_policies": ["customer", "supplier", "lineitem"]
+        },
+        "9": {
+            "tables_used": ["part", "orders", "partsupp", "supplier", "lineitem", "nation"],
+            "applied_policies": ["supplier", "partsupp", "lineitem"]
+        },
+        "10": {
+            "tables_used": ["orders", "customer", "lineitem", "nation"],
+            "applied_policies": ["customer", "lineitem"]
+        },
+        "11": {
+            "tables_used": ["partsupp", "supplier", "nation"],
+            "applied_policies": ["partsupp", "supplier"]
+        },
+        "12": {
+            "tables_used": ["lineitem", "orders"],
+            "applied_policies": ["lineitem"]
+        },
+        "13": {
+            "tables_used": ["orders", "customer"],
+            "applied_policies": ["customer"]
+        },
+        "14": {
+            "tables_used": ["part", "lineitem"],
+            "applied_policies": ["lineitem"]
+        },
+        "15": {
+            "tables_used": ["supplier", "lineitem"],
+            "applied_policies": ["supplier", "lineitem"]
+        },
+        "16": {
+            "tables_used": ["part", "partsupp", "supplier"],
+            "applied_policies": ["partsupp", "supplier"]
+        },
+        "17": {
+            "tables_used": ["part", "lineitem"],
+            "applied_policies": ["lineitem"]
+        },
+        "18": {
+            "tables_used": ["orders", "customer", "lineitem"],
+            "applied_policies": ["customer", "lineitem"]
+        },
+        "19": {
+            "tables_used": ["part", "lineitem"],
+            "applied_policies": ["lineitem"]
+        },
+        "20": {
+            "tables_used": ["partsupp", "part", "supplier", "lineitem", "nation"],
+            "applied_policies": ["supplier", "partsupp", "lineitem"]
+        },
+        "21": {
+            "tables_used": ["orders", "supplier", "lineitem", "nation"],
+            "applied_policies": ["supplier", "lineitem"]
+        },
+        "22": {
+            "tables_used": ["orders", "customer"],
+            "applied_policies": ["customer"]
+        }
+    }
+}
