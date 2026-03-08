@@ -28,7 +28,7 @@ For phases **1** and **2**, you can choose how RLS is applied:
   - The helper function checks membership via the policy query.
 
 - **`n` — Standard RLS predicate**
-  - RLS policies use a standard `USING (...)` predicate built as a membership check against a bypass view derived from the policy query.
+  - RLS policies use a standard `USING (...)` predicate built as a membership check against a predicate derived from the policy query.
 
 > **Important:** `--rls-type` is only valid when `--phase` includes **`1`** and/or **`2`**, or **`all`**.
 > Phase **3** uses secure views and does not use RLS.
