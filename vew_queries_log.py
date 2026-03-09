@@ -69,7 +69,14 @@ def run_query_safe(query, timeout_ms=0, num_iters=3):
         for _ in range(num_iters + 1):
             start = time.perf_counter()
             cursor_tester.execute(query)
-            cursor_tester.fetchall()
+            print(cursor_tester.query)
+
+            rows = cursor_tester.fetchall()  # list[tuple[str]]
+
+
+            print("\nPretty EXPLAIN output:")
+            print("\n".join(r[0] for r in rows))
+
             times.append(time.perf_counter() - start)
         return sum(times[1:]) / (num_iters * 1.0)
     except psycopg2.errors.QueryCanceled:
@@ -101,6 +108,7 @@ def create_secure_views():
             f"CREATE OR REPLACE VIEW {table}_view AS "
             f"SELECT * FROM {table} WHERE {pk_left} IN (SELECT {pk_col} FROM {bypass_view});"
         )
+        print(cursor_admin.query)
         cursor_admin.execute(f"GRANT SELECT ON {table}_view TO tpch_tester;")
 
 
@@ -125,8 +133,8 @@ def view_expt():
         q_data = queries_dict[q_id]
 
         view_sql = rewrite_for_views(q_data["sql"])
-        print(f"      |-- {view_sql}", flush=True)
-        #run_query_safe(view_sql, timeout_ms=dyn_timeout_ms, num_iters=1)
+        print(f"\n {view_sql}", flush=True)
+        run_query_safe(f'EXPLAIN {view_sql}', timeout_ms=9000, num_iters=1)
 
 
 # ---- Main ----
