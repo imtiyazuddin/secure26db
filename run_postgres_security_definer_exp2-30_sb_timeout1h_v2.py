@@ -7,6 +7,7 @@ import psycopg2.errors
 import matplotlib.pyplot as plt
 import numpy as np
 import subprocess
+import os
 from contextlib import contextmanager
 
 
@@ -15,7 +16,7 @@ SUDO_PASSWORD = "#secure26DB\n" #give linux sudo password
 DB_OWNER = "postgres"
 OWNER_PASSWD = "password"
 HOST_IP = "localhost"
-DB_NAME = "tpch_10gb"
+DB_NAME = "postgres"
 PORT = 5432
 # ---- Configuration ----
 BASELINE_TIMEOUT_MS = 3600000  # 1 hour statement_timeout in milliseconds
@@ -341,6 +342,81 @@ def rewrite_for_views(sql):
     return modified_sql
 
 
+
+# ---- File & EXPLAIN helpers (guard superuser-only GUCs) ----
+
+def ensure_dir(path: str):
+    os.makedirs(path, exist_ok=True)
+
+# Returns dict or None on timeout: {planning_ms, execution_ms, total_ms, json_plan}
+def run_explain_analyze_save(cursor, sql: str, phase_slug: str, q_id: str, label_slug: str, timeout_ms: int = 0):
+    if timeout_ms > 0:
+        cursor.execute(f"SET statement_timeout = {int(timeout_ms)}")
+    else:
+        cursor.execute("SET statement_timeout = 0")
+
+    try:
+        cursor.execute("SET track_io_timing = on;")
+    except psycopg2.errors.InsufficientPrivilege:
+        pass
+    cursor.execute("SET jit = off;")
+
+    explain_sql = f"EXPLAIN (ANALYZE, BUFFERS, VERBOSE, SUMMARY, FORMAT JSON) {sql}"
+    try:
+        cursor.execute(explain_sql)
+        row = cursor.fetchone()
+        obj = row[0]
+        if isinstance(obj, str):
+            import json as _json
+            obj = _json.loads(obj)
+        root = obj[0] if isinstance(obj, list) else obj
+        planning_ms  = float(root.get('Planning Time', 0.0))
+        execution_ms = float(root.get('Execution Time', 0.0))
+        total_ms     = planning_ms + execution_ms
+
+        base_dir = os.path.join('RLS-results', phase_slug)
+        ensure_dir(base_dir)
+        out_file = os.path.join(base_dir, f"Q{q_id}_{label_slug}.json")
+        with open(out_file, 'w', encoding='utf-8') as f:
+            import json as _json
+            _json.dump(obj, f, indent=2)
+        print(f"    -> Saved EXPLAIN to {out_file}", flush=True)
+        return {
+            'planning_ms': planning_ms,
+            'execution_ms': execution_ms,
+            'total_ms': total_ms,
+            'json_plan': obj,
+        }
+    except psycopg2.errors.QueryCanceled:
+        base_dir = os.path.join('RLS-results-with-sb', phase_slug)
+        ensure_dir(base_dir)
+        out_file = os.path.join(base_dir, f"Q{q_id}_{label_slug}_TIMEOUT.txt")
+        with open(out_file, 'w', encoding='utf-8') as f:
+            f.write(f"TIMEOUT after {timeout_ms/1000.0:.2f}s for Q{q_id} in {phase_slug}\n")
+            f.write(explain_sql)
+        print(f"    -> TIMEOUT. Logged at {out_file}", flush=True)
+        return None
+
+def run_phase_query_explain(q_sql: str, q_id: str, phase_slug: str, label_slug: str, timeout_ms: int):
+    cursor_tester.execute("SET maintenance_work_mem = '2GB';")
+    cursor_tester.execute("SET default_statistics_target = 500;")
+    cursor_tester.execute("SET random_page_cost = 4;")
+    cursor_tester.execute("SET effective_io_concurrency = 2;")
+    cursor_tester.execute("SET work_mem = '187245kB';")
+    cursor_tester.execute("SET max_parallel_workers_per_gather = 15;")
+
+    metrics = run_explain_analyze_save(cursor_tester, q_sql, phase_slug, q_id, label_slug, timeout_ms=timeout_ms)
+    if metrics is None:
+        return float('inf'), None
+    print(
+        f"      Planning Time: {metrics['planning_ms']:.2f} ms | "
+        f"Execution Time: {metrics['execution_ms']:.2f} ms | "
+        f"Total: {metrics['total_ms']:.2f} ms",
+        flush=True
+    )
+    return metrics['execution_ms']/1000.0, metrics
+
+
 # ---- Experiment phases ----
 def indexed_RLS_expt():
     print("\n--- PHASE 1: Running Baseline (Indexed RLS) ---", flush=True)
@@ -365,7 +441,7 @@ def indexed_RLS_expt():
             clean_pred = pol["raw_sql"].replace('\n', ' ').strip()
             print(f"       |-- {tbl}: {clean_pred}", flush=True)
 
-        avg_time = run_query_safe(q_data["sql"], timeout_ms=BASELINE_TIMEOUT_MS)
+        avg_time, _metrics = run_phase_query_explain(q_data['sql'], q_id, 'phase1', 'baseline', timeout_ms=BASELINE_TIMEOUT_MS)
 
         if avg_time == float('inf'):
             baseline_times[q_id] = BASELINE_TIMEOUT_S
@@ -398,7 +474,7 @@ def pure_RLS_expt():
             BASELINE_TIMEOUT_MS if baseline_times[q_id] >= BASELINE_TIMEOUT_S
             else int(baseline_times[q_id] * 10 * 1000)
         )
-        avg_time = run_query_safe(q_data["sql"], timeout_ms=dyn_timeout_ms)
+        avg_time, _metrics = run_phase_query_explain(q_data['sql'], q_id, 'phase2', 'pure_rls', timeout_ms=dyn_timeout_ms)
         exp1_times[q_id] = avg_time
 
         if avg_time is None:
@@ -431,7 +507,7 @@ def view_expt():
             BASELINE_TIMEOUT_MS if baseline_times[q_id] >= BASELINE_TIMEOUT_S
             else int(baseline_times[q_id] * 10 * 1000)
         )
-        avg_time = run_query_safe(view_sql, timeout_ms=dyn_timeout_ms)
+        avg_time, _metrics = run_phase_query_explain(view_sql, q_id, 'phase3', 'secure_views', timeout_ms=dyn_timeout_ms)
         exp2_times[q_id] = avg_time
 
         if avg_time is None:

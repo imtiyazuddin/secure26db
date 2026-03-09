@@ -32,11 +32,12 @@ def get_connection():
 
 
 
-# ---- File & EXPLAIN helpers ----
+# ---- File & EXPLAIN helpers (Option A: guard superuser-only GUCs) ----
+
 def ensure_dir(path: str):
     os.makedirs(path, exist_ok=True)
 
-# Returns dict: {planning_ms: float, execution_ms: float, total_ms: float, json_plan: obj}
+# Returns dict or None on timeout: {planning_ms, execution_ms, total_ms, json_plan}
 def run_explain_analyze_save(cursor, sql: str, phase_slug: str, q_id: str, label_slug: str, timeout_ms: int = 0):
     # Set timeout per run
     if timeout_ms > 0:
@@ -44,37 +45,41 @@ def run_explain_analyze_save(cursor, sql: str, phase_slug: str, q_id: str, label
     else:
         cursor.execute("SET statement_timeout = 0")
 
-    # Enable useful instrumentation; ANALYZE collects timing anyway
-    cursor.execute("SET track_io_timing = on;")
-    cursor.execute("SET jit = off;")  # often reduces variance for benchmarking
+    # Instrumentation (track_io_timing is superuser-only; skip if insufficient privilege)
+    try:
+        cursor.execute("SET track_io_timing = on;")
+    except psycopg2.errors.InsufficientPrivilege:
+        pass
+    cursor.execute("SET jit = off;")  # reduce variance
 
     explain_sql = f"EXPLAIN (ANALYZE, BUFFERS, VERBOSE, SUMMARY, FORMAT JSON) {sql}"
     try:
         cursor.execute(explain_sql)
         row = cursor.fetchone()
-        # psycopg2 returns either str or native json/dict depending on adapters
         obj = row[0]
         if isinstance(obj, str):
             obj = json.loads(obj)
-        # JSON format: a list with one dict at [0]
-        root = obj[0] if isinstance(obj, list) else obj
-        planning_ms = float(root.get('Planning Time', 0.0))
-        execution_ms = float(root.get('Execution Time', 0.0))
-        total_ms = planning_ms + execution_ms
 
-        # save to file
+        root = obj[0] if isinstance(obj, list) else obj
+        planning_ms  = float(root.get('Planning Time', 0.0))
+        execution_ms = float(root.get('Execution Time', 0.0))
+        total_ms     = planning_ms + execution_ms
+
+        # Save JSON plan
         base_dir = os.path.join('RLS-results', phase_slug)
         ensure_dir(base_dir)
         out_file = os.path.join(base_dir, f"Q{q_id}_{label_slug}.json")
         with open(out_file, 'w', encoding='utf-8') as f:
             json.dump(obj, f, indent=2)
         print(f"    -> Saved EXPLAIN to {out_file}")
+
         return {
             'planning_ms': planning_ms,
             'execution_ms': execution_ms,
             'total_ms': total_ms,
             'json_plan': obj,
         }
+
     except psycopg2.errors.QueryCanceled:
         base_dir = os.path.join('RLS-results', phase_slug)
         ensure_dir(base_dir)
@@ -84,6 +89,32 @@ def run_explain_analyze_save(cursor, sql: str, phase_slug: str, q_id: str, label
             f.write(explain_sql)
         print(f"    -> TIMEOUT. Logged at {out_file}")
         return None
+
+# Phase-aware runner that prints plan & exec times, returns execution seconds for plotting
+def run_phase_query_explain(q_sql: str, q_id: str, phase_slug: str, label_slug: str, timeout_ms: int):
+    # Keep your session GUCs identical to your earlier script
+    cursor_tester.execute("SET maintenance_work_mem = '2GB';")
+    cursor_tester.execute("SET default_statistics_target = 500;")
+    cursor_tester.execute("SET random_page_cost = 4;")
+    cursor_tester.execute("SET effective_io_concurrency = 2;")
+    cursor_tester.execute("SET work_mem = '187245kB';")
+    cursor_tester.execute("SET max_parallel_workers_per_gather = 15;")
+
+    metrics = run_explain_analyze_save(
+        cursor_tester, q_sql, phase_slug, q_id, label_slug, timeout_ms=timeout_ms
+    )
+    if metrics is None:
+        return float('inf'), None
+
+    print(
+        f"      Planning Time: {metrics['planning_ms']:.2f} ms | "
+        f"Execution Time: {metrics['execution_ms']:.2f} ms | "
+        f"Total: {metrics['total_ms']:.2f} ms"
+    )
+    # Return execution seconds for existing plotting; switch to total_ms if you prefer total
+    return metrics['execution_ms']/1000.0, metrics
+
+
 def run_query(query):
     with get_connection() as conn:
         with conn.cursor() as cur:
@@ -446,11 +477,13 @@ def rewrite_for_views(sql):
         modified_sql = re.sub(rf'(?i)(,\s*){t}\b', rf'\g<1>{t}_view', modified_sql)
     return modified_sql
 
+
 # --- EXECUTION ---
 
 baseline_times = {}
 exp1_times = {}
 exp2_times = {}
+
 
 
 # Prepare result directories
@@ -596,20 +629,4 @@ if baseline_times:
     print("\nSaved as postgres_exp2_clean_4P.png", flush=True)
 
 
-# Phase-aware runner that returns seconds (execution_ms/1000.0) for plotting and prints plan & exec times
 
-def run_phase_query_explain(q_sql: str, q_id: str, phase_slug: str, label_slug: str, timeout_ms: int):
-    # apply the same session GUCs you previously set
-    cursor_tester.execute("SET maintenance_work_mem = '2GB';")
-    cursor_tester.execute("SET default_statistics_target = 500;")
-    cursor_tester.execute("SET random_page_cost = 4;")
-    cursor_tester.execute("SET effective_io_concurrency = 2;")
-    cursor_tester.execute("SET work_mem = '187245kB';")
-    cursor_tester.execute("SET max_parallel_workers_per_gather = 15;")
-
-    metrics = run_explain_analyze_save(cursor_tester, q_sql, phase_slug, q_id, label_slug, timeout_ms=timeout_ms)
-    if metrics is None:
-        return float('inf'), None
-    print(f"      Planning Time: {metrics['planning_ms']:.2f} ms | Execution Time: {metrics['execution_ms']:.2f} ms | Total: {metrics['total_ms']:.2f} ms")
-    # return seconds for plotting + metrics dict for any further use
-    return metrics['execution_ms']/1000.0, metrics
