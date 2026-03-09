@@ -1,0 +1,67 @@
+query,query_num,case,time_1gb_s,time_10gb_s,timeout_1gb,timeout_10gb,slowdown_10gb_over_1gb
+Q1,1,Indexed RLS,1.3464,9.6537,False,False,7.17
+Q2,2,Indexed RLS,0.3137,3.2026,False,False,10.21
+Q3,3,Indexed RLS,7.8637,89.8895,False,False,11.43
+Q4,4,Indexed RLS,29.315,407.882,False,False,13.91
+Q5,5,Indexed RLS,10.5709,117.8501,False,False,11.15
+Q6,6,Indexed RLS,0.4345,2.5199,False,False,5.8
+Q7,7,Indexed RLS,5.4215,65.6522,False,False,12.11
+Q8,8,Indexed RLS,2.3216,24.8981,False,False,10.72
+Q9,9,Indexed RLS,10.1919,118.4999,False,False,11.63
+Q10,10,Indexed RLS,41.444,148.0651,False,False,3.57
+Q11,11,Indexed RLS,0.1978,1.9003,False,False,9.61
+Q12,12,Indexed RLS,1.7174,19.5499,False,False,11.38
+Q13,13,Indexed RLS,63.9607,677.9366,False,False,10.6
+Q14,14,Indexed RLS,3.1707,24.6834,False,False,7.78
+Q15,15,Indexed RLS,1.2016,12.8086,False,False,10.66
+Q16,16,Indexed RLS,0.6898,12.3976,False,False,17.97
+Q17,17,Indexed RLS,0.1992,1.514,False,False,7.6
+Q18,18,Indexed RLS,4.4735,73.4435,False,False,16.42
+Q19,19,Indexed RLS,2.1477,25.0592,False,False,11.67
+Q20,20,Indexed RLS,2.6835,32.486,False,False,12.11
+Q21,21,Indexed RLS,1.1516,13.3018,False,False,11.55
+Q22,22,Indexed RLS,23.8439,282.9021,False,False,11.86
+Q1,1,Pure RLS,1.3525,9.6043,False,False,7.1
+Q2,2,Pure RLS,,37.9426,True,False,
+Q3,3,Pure RLS,7.7418,85.7687,False,False,11.08
+Q4,4,Pure RLS,29.0263,406.3594,False,False,14.0
+Q5,5,Pure RLS,64.1818,791.7101,False,False,12.34
+Q6,6,Pure RLS,0.3541,2.5886,False,False,7.31
+Q7,7,Pure RLS,5.6652,60.5282,False,False,10.68
+Q8,8,Pure RLS,4.8651,47.3794,False,False,9.74
+Q9,9,Pure RLS,21.8434,234.5972,False,False,10.74
+Q10,10,Pure RLS,41.1835,141.5079,False,False,3.44
+Q11,11,Pure RLS,0.4244,4.4268,False,False,10.43
+Q12,12,Pure RLS,1.7113,18.7774,False,False,10.97
+Q13,13,Pure RLS,63.7711,687.2863,False,False,10.78
+Q14,14,Pure RLS,12.1528,116.3729,False,False,9.58
+Q15,15,Pure RLS,1.2141,12.771,False,False,10.52
+Q16,16,Pure RLS,3.6494,40.7725,False,False,11.17
+Q17,17,Pure RLS,0.2011,1.465,False,False,7.28
+Q18,18,Pure RLS,4.4584,71.8556,False,False,16.12
+Q19,19,Pure RLS,10.9011,101.1201,False,False,9.28
+Q20,20,Pure RLS,11.5938,108.1869,False,False,9.33
+Q21,21,Pure RLS,1.9572,22.7566,False,False,11.63
+Q22,22,Pure RLS,23.9137,274.9756,False,False,11.5
+Q1,1,Views,,,True,True,
+Q2,2,Views,0.7208,9.8726,False,False,13.7
+Q3,3,Views,64.4692,1087.5149,False,False,16.87
+Q4,4,Views,47.4836,917.7222,False,False,19.33
+Q5,5,Views,46.022,955.3241,False,False,20.76
+Q6,6,Views,,,True,True,
+Q7,7,Views,47.1943,892.1591,False,False,18.9
+Q8,8,Views,,,True,True,
+Q9,9,Views,49.7231,,False,True,
+Q10,10,Views,49.2737,769.6402,False,False,15.62
+Q11,11,Views,0.2837,2.053,False,False,7.24
+Q12,12,Views,,,True,True,
+Q13,13,Views,21.3182,235.6943,False,False,11.06
+Q14,14,Views,,,True,True,
+Q15,15,Views,,,True,True,
+Q16,16,Views,0.4971,3.2004,False,False,6.44
+Q17,17,Views,,,True,True,
+Q18,18,Views,,,True,True,
+Q19,19,Views,,,True,True,
+Q20,20,Views,,,True,True,
+Q21,21,Views,,,True,True,
+Q22,22,Views,13.8932,150.157,False,False,10.81

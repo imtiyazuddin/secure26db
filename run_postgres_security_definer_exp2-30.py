@@ -106,33 +106,36 @@ def get_connection():
         conn.close()
 
 
-def run_query_safe(query, timeout_ms=0):
+def run_query_safe(query, timeout_ms=0, num_iters=3):
     if timeout_ms > 0:
         cursor_tester.execute(f"SET statement_timeout = {int(timeout_ms)}")
     else:
         cursor_tester.execute("SET statement_timeout = 0")
 
+    apply_perf_settings()
 
+    times = []
+    try:
+        for _ in range(num_iters + 1):
+            start = time.perf_counter()
+            cursor_tester.execute(query)
+            cursor_tester.fetchall()
+            times.append(time.perf_counter() - start)
+        return sum(times[1:]) / (num_iters * 1.0)
+    except psycopg2.errors.QueryCanceled:
+        return float('inf')
+    except Exception as e:
+        print(f"      [!] Error: {e}".strip(), flush=True)
+        return None
+
+
+def apply_perf_settings():
     cursor_tester.execute("SET maintenance_work_mem = '2GB';")
     cursor_tester.execute("SET default_statistics_target = 500;")
     cursor_tester.execute("SET random_page_cost = 4;")
     cursor_tester.execute("SET effective_io_concurrency = 2;")
     cursor_tester.execute("SET work_mem = '187245kB';")
     cursor_tester.execute("SET max_parallel_workers_per_gather = 15;")
-
-    times = []
-    try:
-        for _ in range(1):
-            start = time.perf_counter()
-            cursor_tester.execute(query)
-            cursor_tester.fetchall()
-            times.append(time.perf_counter() - start)
-        return sum(times) / len(times)
-    except psycopg2.errors.QueryCanceled:
-        return float('inf')
-    except Exception as e:
-        print(f"      [!] Error: {e}".strip(), flush=True)
-        return None
 
 
 # ---- Restart helpers ----
@@ -462,6 +465,7 @@ def view_expt():
             900000 if baseline_times[q_id] >= 900.0
             else int(baseline_times[q_id] * 10 * 1000)
         )
+        print(f"      |-- {view_sql}", flush=True)
         avg_time = run_query_safe(view_sql, timeout_ms=dyn_timeout_ms)
         exp2_times[q_id] = avg_time
 
