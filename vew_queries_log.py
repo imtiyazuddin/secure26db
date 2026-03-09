@@ -7,11 +7,12 @@ from contextlib import contextmanager
 import psycopg2
 import psycopg2.errors
 
-SUDO_PASSWORD = "\n" #give linux sudo password
+
+SUDO_PASSWORD = "#secure26DB\n" #give linux sudo password
 DB_OWNER = "postgres"
-OWNER_PASSWD = "postgres123"
+OWNER_PASSWD = "password"
 HOST_IP = "localhost"
-DB_NAME = "tpch"
+DB_NAME = "postgres"
 PORT = 5432
 # ---- Configuration ----
 ADMIN_DB_CONFIG = {
@@ -124,12 +125,8 @@ def view_expt():
         q_data = queries_dict[q_id]
 
         view_sql = rewrite_for_views(q_data["sql"])
-        dyn_timeout_ms = (
-            900000 if baseline_times[q_id] >= 900.0
-            else int(baseline_times[q_id] * 10 * 1000)
-        )
         print(f"      |-- {view_sql}", flush=True)
-        run_query_safe(view_sql, timeout_ms=dyn_timeout_ms, num_iters=1)
+        #run_query_safe(view_sql, timeout_ms=dyn_timeout_ms, num_iters=1)
 
 
 # ---- Main ----
