@@ -427,7 +427,7 @@ def apply_rls():
     }
     
     for table, pol_data in global_policies.items():
-        policy_sql = pol_data["raw_sql"]
+        policy_sql = rewrite_bypass_sql(pol_data["raw_sql"], table)
         logical_predicate = pol_data["predicate"]
         
         pk_col = LOCAL_PK_MAP[table]
@@ -448,6 +448,18 @@ def apply_rls():
         cursor_admin.execute(f"CREATE POLICY tpch_rls_pol ON {table} FOR SELECT USING ({actual_rls_predicate});")
         cursor_admin.execute(f"ANALYZE {table};")
 
+def rewrite_bypass_sql(raw_sql: str, current_table: str) -> str:
+    """In a policy's raw_sql, replace any reference to another protected table
+    with its rls_bypass_view_<table> equivalent, so the bypass view chain
+    mirrors RLS cascading."""
+    result = raw_sql
+    for table in global_policies.keys():
+        if table == current_table:
+            continue
+        result = re.sub(rf'(?i)\bFROM\s+{table}\b', f'FROM rls_bypass_view_{table}', result)
+        result = re.sub(rf'(?i)\bJOIN\s+{table}\b', f'JOIN rls_bypass_view_{table}', result)
+    return result
+
 def create_secure_views():
     LOCAL_PK_MAP = {
         'region': 'r_regionkey', 'nation': 'n_nationkey', 'part': 'p_partkey',
@@ -456,11 +468,11 @@ def create_secure_views():
     }
     
     for table, pol_data in global_policies.items():
-        policy_sql = pol_data["raw_sql"]
+        policy_sql = rewrite_bypass_sql(pol_data["raw_sql"], table)
         pk_col = LOCAL_PK_MAP[table]
         pk_left = f"({pk_col})" if "," in pk_col else pk_col
         
-        # 1. Create bypass view logic
+        # 1. Create bypass view with hierarchical references
         bypass_view = f"rls_bypass_view_{table}"
         cursor_admin.execute(f"CREATE OR REPLACE VIEW {bypass_view} AS {policy_sql};")
         cursor_admin.execute(f"GRANT SELECT ON {bypass_view} TO tpch_tester;")

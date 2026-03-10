@@ -1,0 +1,70 @@
+Loading manual queries from: queries/all_queries_with_tiered_predicates.sql
+Loaded 22 manual queries
+Loading view queries from: vew_queries_log.txt
+Loaded 8 CREATE VIEW statements, 22 rewritten queries
+
+Connecting to database...
+  Connected as postgres (for RLS setup/teardown)
+  Ensured rls_user exists
+  Connected as rls_user (for RLS queries)
+
+======================================================================
+COMPARING RESULTS
+======================================================================
+
+Q1: RLS vs Manual: [MATCH] Match (4 rows) | RLS vs View: [MATCH] Match (4 rows)
+
+Q2: RLS vs Manual: [MATCH] Match (100 rows) | RLS vs View: [MATCH] Match (100 rows)
+
+Q3: RLS vs Manual: [MATCH] Match (614 rows) | RLS vs View: [MATCH] Match (614 rows)
+
+Q4: RLS vs Manual: [MATCH] Match (2 rows) | RLS vs View: [MATCH] Match (2 rows)
+
+Q5: RLS vs Manual: [MATCH] Both empty | RLS vs View: [MATCH] Both empty
+
+Q6: RLS vs Manual: [MATCH] Match (1 rows) | RLS vs View: [MATCH] Match (1 rows)
+
+Q7: RLS vs Manual: [MATCH] Match (4 rows) | RLS vs View: [MATCH] Match (4 rows)
+
+Q8: RLS vs Manual: [MATCH] Both empty | RLS vs View: [MATCH] Both empty
+
+Q10: RLS vs Manual: [MATCH] Match (2052 rows) | RLS vs View: [MATCH] Match (2052 rows)
+
+Q11: RLS vs Manual: [MATCH] Both empty | RLS vs View: [MATCH] Both empty
+
+Q12: RLS vs Manual: [MATCH] Match (1 rows) | RLS vs View: [MATCH] Match (1 rows)
+
+Q13: RLS vs Manual: [MATCH] Match (3669 rows) | RLS vs View: [MISMATCH] Mismatch: 3669 only in RLS, 3669 only in View
+
+Q14: RLS vs Manual: [MATCH] Match (1 rows) | RLS vs View: [MATCH] Match (1 rows)
+
+Q15: RLS vs Manual: [MATCH] Match (1 rows) | RLS vs View: [MATCH] Match (1 rows)
+
+Q16: RLS vs Manual: [MATCH] Match (4682 rows) | RLS vs View: [MATCH] Match (4682 rows)
+
+Q17: RLS vs Manual: [MATCH] Match (1 rows) | RLS vs View: [MATCH] Match (1 rows)
+
+Q18: RLS vs Manual: [MATCH] Both empty | RLS vs View: [MATCH] Both empty
+
+Q19: RLS vs Manual: [MATCH] Match (1 rows) | RLS vs View: [MATCH] Match (1 rows)
+
+Q20: RLS vs Manual: [MATCH] Match (280 rows) | RLS vs View: [MATCH] Match (280 rows)
+
+Q21: RLS vs Manual: [MATCH] Both empty | RLS vs View: [MATCH] Both empty
+
+Q22: RLS vs Manual: [MATCH] Match (3 rows) | RLS vs View: [MATCH] Match (3 rows)
+
+======================================================================
+SUMMARY
+======================================================================
+Metric                      RLS vs Manual     RLS vs View
+---------------------------------------------------------
+Total queries                          21              21
+Matches                                21              20
+Mismatches                              0               1
+Errors                                  0               0
+
+RLS vs View mismatches:
+  Q13: Mismatch: 3669 only in RLS, 3669 only in View
+
+Final cleanup: RLS disabled

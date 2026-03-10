@@ -26,6 +26,7 @@ ADMIN_DB_CONFIG = {
 # ---- Globals (populated in main) ----
 global_policies  = {}
 queries_dict     = {}
+sql_queries      = {}
 baseline_times   = {}
 exp1_times       = {}
 exp2_times       = {}
@@ -95,9 +96,22 @@ def apply_perf_settings():
     cursor_tester.execute("SET max_parallel_workers_per_gather = 15;")
 
 
+def rewrite_bypass_sql(raw_sql: str, current_table: str) -> str:
+    """In a policy's raw_sql, replace any reference to another protected table
+    with its rls_bypass_view_<table> equivalent, so the bypass view chain
+    mirrors RLS cascading."""
+    result = raw_sql
+    for table in global_policies.keys():
+        if table == current_table:
+            continue  # skip self-reference
+        result = re.sub(rf'(?i)\bFROM\s+{table}\b', f'FROM rls_bypass_view_{table}', result)
+        result = re.sub(rf'(?i)\bJOIN\s+{table}\b',  f'JOIN rls_bypass_view_{table}',  result)
+    return result
+
+
 def create_secure_views():
     for table, pol_data in global_policies.items():
-        policy_sql  = pol_data["raw_sql"]
+        policy_sql  = rewrite_bypass_sql(pol_data["raw_sql"], table)
         pk_col      = LOCAL_PK_MAP[table]
         pk_left     = f"({pk_col})" if "," in pk_col else pk_col
         bypass_view = f"rls_bypass_view_{table}"
@@ -125,7 +139,7 @@ def print_view_definitions():
     """Print the CREATE VIEW statements without executing them."""
     print("\n--- VIEW DEFINITIONS ---")
     for table, pol_data in global_policies.items():
-        policy_sql  = pol_data["raw_sql"]
+        policy_sql  = rewrite_bypass_sql(pol_data["raw_sql"], table)
         pk_col      = LOCAL_PK_MAP[table]
         pk_left     = f"({pk_col})" if "," in pk_col else pk_col
         bypass_view = f"rls_bypass_view_{table}"
@@ -136,14 +150,30 @@ def print_view_definitions():
         print(f"  SELECT * FROM {table} WHERE {pk_left} IN (SELECT {pk_col} FROM {bypass_view});")
 
 
+def load_queries_from_file(filepath: str) -> dict:
+    """Parse a SQL file with --Q1 / -- Q1 markers into {str(n): sql} dict."""
+    with open(filepath, 'r') as f:
+        content = f.read()
+    sql_map = {}
+    parts = re.split(r'(?=--\s*Q\d+)', content)
+    for part in parts:
+        m = re.match(r'--\s*Q(\d+)', part.strip())
+        if m:
+            qnum = m.group(1)
+            sql = re.sub(r'^--\s*Q\d+\s*', '', part.strip(), count=1).strip().rstrip(';')
+            if sql:
+                sql_map[qnum] = sql
+    return sql_map
+
+
 def print_rewritten_queries():
     """Print the rewritten queries (table names replaced with view names)."""
     print("\n--- REWRITTEN QUERIES ---")
     for i in range(1, 23):
         q_id = str(i)
-        if q_id not in queries_dict:
+        if q_id not in sql_queries:
             continue
-        view_sql = rewrite_for_views(queries_dict[q_id]["sql"])
+        view_sql = rewrite_for_views(sql_queries[q_id])
         print(f"\n-- Q{q_id}")
         print(view_sql)
         print()
@@ -155,12 +185,10 @@ def view_expt():
 
     for i in range(1, 23):
         q_id = str(i)
-        if q_id not in queries_dict:
+        if q_id not in sql_queries:
             continue
 
-        q_data = queries_dict[q_id]
-
-        view_sql = rewrite_for_views(q_data["sql"])
+        view_sql = rewrite_for_views(sql_queries[q_id])
         print(f"\n {view_sql}", flush=True)
         run_query_safe(f'EXPLAIN {view_sql}', timeout_ms=9000, num_iters=1)
 
@@ -174,6 +202,11 @@ def parse_args():
     parser.add_argument(
         "mapping_file",
         help="Path to experiment_mapping.json",
+    )
+    parser.add_argument(
+        "--queries-file",
+        default="queries/all_queries.sql",
+        help="Path to SQL file containing TPC-H queries (used when mapping has no 'sql' field).",
     )
     parser.add_argument(
         "--print-only", action="store_true",
@@ -215,7 +248,7 @@ def close_connections():
 
 
 def main():
-    global global_policies, queries_dict
+    global global_policies, queries_dict, sql_queries
 
     args = parse_args()
 
@@ -225,6 +258,13 @@ def main():
 
     global_policies = plan["policies"]
     queries_dict    = plan["queries"]
+
+    # Use embedded sql if available, otherwise load from separate file
+    sample = next(iter(queries_dict.values()), {})
+    if "sql" in sample:
+        sql_queries = {k: v["sql"] for k, v in queries_dict.items()}
+    else:
+        sql_queries = load_queries_from_file(args.queries_file)
 
     if args.print_only:
         print_view_definitions()
