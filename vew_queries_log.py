@@ -121,6 +121,34 @@ def rewrite_for_views(sql):
     return modified_sql
 
 
+def print_view_definitions():
+    """Print the CREATE VIEW statements without executing them."""
+    print("\n--- VIEW DEFINITIONS ---")
+    for table, pol_data in global_policies.items():
+        policy_sql  = pol_data["raw_sql"]
+        pk_col      = LOCAL_PK_MAP[table]
+        pk_left     = f"({pk_col})" if "," in pk_col else pk_col
+        bypass_view = f"rls_bypass_view_{table}"
+
+        print(f"\n-- {table}")
+        print(f"CREATE OR REPLACE VIEW {bypass_view} AS\n  {policy_sql.strip()};")
+        print(f"\nCREATE OR REPLACE VIEW {table}_view AS")
+        print(f"  SELECT * FROM {table} WHERE {pk_left} IN (SELECT {pk_col} FROM {bypass_view});")
+
+
+def print_rewritten_queries():
+    """Print the rewritten queries (table names replaced with view names)."""
+    print("\n--- REWRITTEN QUERIES ---")
+    for i in range(1, 23):
+        q_id = str(i)
+        if q_id not in queries_dict:
+            continue
+        view_sql = rewrite_for_views(queries_dict[q_id]["sql"])
+        print(f"\n-- Q{q_id}")
+        print(view_sql)
+        print()
+
+
 def view_expt():
     print("\n--- PHASE 3: Running Exp 2 (Secure Views) ---", flush=True)
     create_secure_views()
@@ -146,6 +174,10 @@ def parse_args():
     parser.add_argument(
         "mapping_file",
         help="Path to experiment_mapping.json",
+    )
+    parser.add_argument(
+        "--print-only", action="store_true",
+        help="Just print view definitions and rewritten queries, no DB connection needed.",
     )
     return parser.parse_args()
 
@@ -193,6 +225,11 @@ def main():
 
     global_policies = plan["policies"]
     queries_dict    = plan["queries"]
+
+    if args.print_only:
+        print_view_definitions()
+        print_rewritten_queries()
+        return
 
     init_connections()
 
