@@ -139,7 +139,10 @@ Run all phases with a custom output filename:
 ```bash
 python experiment_runner.py experiment_mapping.json --phase all --output my_results.png
 ```
-
+# to display view queries 
+''' bash 
+python vew_queries_log.py experiment_mapping_tiered.json --print-only
+'''
 ---
 
 ## What the Script Does
