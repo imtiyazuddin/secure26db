@@ -374,7 +374,7 @@ def run_explain_analyze_save(cursor, sql: str, phase_slug: str, q_id: str, label
         execution_ms = float(root.get('Execution Time', 0.0))
         total_ms     = planning_ms + execution_ms
 
-        base_dir = os.path.join('RLS-results', phase_slug)
+        base_dir = os.path.join('RLS-results-with-sb', phase_slug)
         ensure_dir(base_dir)
         out_file = os.path.join(base_dir, f"Q{q_id}_{label_slug}.json")
         with open(out_file, 'w', encoding='utf-8') as f:
@@ -472,7 +472,7 @@ def pure_RLS_expt():
 
         dyn_timeout_ms = (
             BASELINE_TIMEOUT_MS if baseline_times[q_id] >= BASELINE_TIMEOUT_S
-            else int(baseline_times[q_id] * 10 * 1000)
+            else int(baseline_times[q_id] * 15 * 1000)
         )
         avg_time, _metrics = run_phase_query_explain(q_data['sql'], q_id, 'phase2', 'pure_rls', timeout_ms=dyn_timeout_ms)
         exp1_times[q_id] = avg_time
@@ -505,7 +505,7 @@ def view_expt():
         view_sql = rewrite_for_views(q_data["sql"])
         dyn_timeout_ms = (
             BASELINE_TIMEOUT_MS if baseline_times[q_id] >= BASELINE_TIMEOUT_S
-            else int(baseline_times[q_id] * 10 * 1000)
+            else int(baseline_times[q_id] * 15 * 1000)
         )
         avg_time, _metrics = run_phase_query_explain(view_sql, q_id, 'phase3', 'secure_views', timeout_ms=dyn_timeout_ms)
         exp2_times[q_id] = avg_time
