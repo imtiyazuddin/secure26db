@@ -61,7 +61,7 @@ SUDO_PASSWORD = "your_linux_sudo_password\n"   # trailing \n required
 DB_OWNER      = "postgres"                      # superuser role
 OWNER_PASSWD  = "postgres123"                   # superuser password
 HOST_IP       = "localhost"
-DB_NAME       = "tpch"
+DB_NAME       = "tpch"                          # postgres for 1gb and tpch_10gb for 10gb data. 
 PORT          = 5432
 ```
 
@@ -255,3 +255,19 @@ Saved as postgres_exp2_clean_4P.png
 | Phase 2 / 3 — baseline timed out | Hard 900s |
 
 Timed-out queries are recorded as `900.0s` for ratio calculations in the plot.
+
+
+## RLS results script
+
+I. RLS Experiment
+1. Filename: rls_exp.py 
+2. Run: python3 rls_exp.py > rls-output.log           # this will write all the output logs to rls-output.log
+3. MAPPING_FILE = "rls_exp.json"                       # this is set inside the code
+4. Output directory structure: This creates the folder RLS-results and inside there will three folders one for each phase, where all the explain outputs are dumped per query as Qnumber_phase.json
+
+
+II. Security Experiment
+1. Filename: security_barrier_exp.py 
+2. Run: python3 security_barrier_exp.py security_barrier_exp.json --output security_barrier_exp.png  > security_barrier-output.log           # this will write all the output logs to security_barrier-output.log, bar charts created in security_barrier_exp.png
+3. MAPPING_FILE: needs to be passed during command line
+4. Output directory structure: This creates the folder RLS-results-with-sb and inside there will three folders one for each phase, where all the explain outputs are dumped per query as Qnumber_phase.json
