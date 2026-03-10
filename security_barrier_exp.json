@@ -4,7 +4,6 @@
     "policies_loaded": [
       "orders",
       "customer",
-      "lineitem",
       "part",
       "supplier"
     ]
@@ -19,11 +18,6 @@
       "file": "atomic_p6.sql",
       "raw_sql": "SELECT c.*\nFROM customer c\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    JOIN lineitem l \n         ON l.l_orderkey = o.o_orderkey\n    JOIN supplier s \n         ON s.s_suppkey = l.l_suppkey\n    JOIN nation ns \n         ON ns.n_nationkey = s.s_nationkey\n    JOIN nation nc \n         ON nc.n_nationkey = c.c_nationkey\n    WHERE o.o_custkey = c.c_custkey\n      AND ns.n_regionkey = nc.n_regionkey\n      AND ns.n_nationkey <> nc.n_nationkey\n)",
       "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    JOIN lineitem l \n         ON l.l_orderkey = o.o_orderkey\n    JOIN supplier s \n         ON s.s_suppkey = l.l_suppkey\n    JOIN nation ns \n         ON ns.n_nationkey = s.s_nationkey\n    JOIN nation nc \n         ON nc.n_nationkey = c.c_nationkey\n    WHERE o.o_custkey = c.c_custkey\n      AND ns.n_regionkey = nc.n_regionkey\n      AND ns.n_nationkey <> nc.n_nationkey\n)"
-    },
-    "lineitem": {
-      "file": "atomic_p15.sql",
-      "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-      "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
     },
     "part": {
       "file": "atomic_p7.sql",
@@ -43,11 +37,6 @@
         "lineitem"
       ],
       "applied_policies": {
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
-        }
       }
     },
     "2": {
@@ -89,11 +78,6 @@
           "file": "atomic_p6.sql",
           "raw_sql": "SELECT c.*\nFROM customer c\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    JOIN lineitem l \n         ON l.l_orderkey = o.o_orderkey\n    JOIN supplier s \n         ON s.s_suppkey = l.l_suppkey\n    JOIN nation ns \n         ON ns.n_nationkey = s.s_nationkey\n    JOIN nation nc \n         ON nc.n_nationkey = c.c_nationkey\n    WHERE o.o_custkey = c.c_custkey\n      AND ns.n_regionkey = nc.n_regionkey\n      AND ns.n_nationkey <> nc.n_nationkey\n)",
           "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    JOIN lineitem l \n         ON l.l_orderkey = o.o_orderkey\n    JOIN supplier s \n         ON s.s_suppkey = l.l_suppkey\n    JOIN nation ns \n         ON ns.n_nationkey = s.s_nationkey\n    JOIN nation nc \n         ON nc.n_nationkey = c.c_nationkey\n    WHERE o.o_custkey = c.c_custkey\n      AND ns.n_regionkey = nc.n_regionkey\n      AND ns.n_nationkey <> nc.n_nationkey\n)"
-        },
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
         }
       }
     },
@@ -108,11 +92,6 @@
           "file": "atomic_p11.sql",
           "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
           "predicate": "( SELECT SUM(l.l_extendedprice * (1 - l.l_discount)) FROM lineitem l WHERE l.l_orderkey = o.o_orderkey ) > 100000"
-        },
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
         }
       }
     },
@@ -137,11 +116,6 @@
           "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    JOIN part p ON p.p_partkey = ps.ps_partkey\n    WHERE ps.ps_suppkey = s.s_suppkey\n      AND p.p_retailprice < 500\n)",
           "predicate": "NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    JOIN part p ON p.p_partkey = ps.ps_partkey\n    WHERE ps.ps_suppkey = s.s_suppkey\n      AND p.p_retailprice < 500\n)"
         },
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
-        },
         "orders": {
           "file": "atomic_p11.sql",
           "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
@@ -155,11 +129,6 @@
         "lineitem"
       ],
       "applied_policies": {
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
-        }
       }
     },
     "7": {
@@ -181,11 +150,6 @@
           "file": "atomic_p8.sql",
           "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    JOIN part p ON p.p_partkey = ps.ps_partkey\n    WHERE ps.ps_suppkey = s.s_suppkey\n      AND p.p_retailprice < 500\n)",
           "predicate": "NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    JOIN part p ON p.p_partkey = ps.ps_partkey\n    WHERE ps.ps_suppkey = s.s_suppkey\n      AND p.p_retailprice < 500\n)"
-        },
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
         },
         "orders": {
           "file": "atomic_p11.sql",
@@ -216,11 +180,6 @@
           "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    JOIN part p ON p.p_partkey = ps.ps_partkey\n    WHERE ps.ps_suppkey = s.s_suppkey\n      AND p.p_retailprice < 500\n)",
           "predicate": "NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    JOIN part p ON p.p_partkey = ps.ps_partkey\n    WHERE ps.ps_suppkey = s.s_suppkey\n      AND p.p_retailprice < 500\n)"
         },
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
-        },
         "orders": {
           "file": "atomic_p11.sql",
           "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
@@ -248,11 +207,6 @@
           "file": "atomic_p8.sql",
           "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    JOIN part p ON p.p_partkey = ps.ps_partkey\n    WHERE ps.ps_suppkey = s.s_suppkey\n      AND p.p_retailprice < 500\n)",
           "predicate": "NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    JOIN part p ON p.p_partkey = ps.ps_partkey\n    WHERE ps.ps_suppkey = s.s_suppkey\n      AND p.p_retailprice < 500\n)"
-        },
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
         },
         "orders": {
           "file": "atomic_p11.sql",
@@ -284,11 +238,6 @@
           "file": "atomic_p6.sql",
           "raw_sql": "SELECT c.*\nFROM customer c\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    JOIN lineitem l \n         ON l.l_orderkey = o.o_orderkey\n    JOIN supplier s \n         ON s.s_suppkey = l.l_suppkey\n    JOIN nation ns \n         ON ns.n_nationkey = s.s_nationkey\n    JOIN nation nc \n         ON nc.n_nationkey = c.c_nationkey\n    WHERE o.o_custkey = c.c_custkey\n      AND ns.n_regionkey = nc.n_regionkey\n      AND ns.n_nationkey <> nc.n_nationkey\n)",
           "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    JOIN lineitem l \n         ON l.l_orderkey = o.o_orderkey\n    JOIN supplier s \n         ON s.s_suppkey = l.l_suppkey\n    JOIN nation ns \n         ON ns.n_nationkey = s.s_nationkey\n    JOIN nation nc \n         ON nc.n_nationkey = c.c_nationkey\n    WHERE o.o_custkey = c.c_custkey\n      AND ns.n_regionkey = nc.n_regionkey\n      AND ns.n_nationkey <> nc.n_nationkey\n)"
-        },
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
         }
       }
     },
@@ -318,11 +267,6 @@
           "file": "atomic_p11.sql",
           "raw_sql": "SELECT o.*\nFROM orders o\nJOIN lineitem l\n     ON l.l_orderkey = o.o_orderkey\nGROUP BY o.o_orderkey,\n         o.o_custkey,\n         o.o_orderstatus,\n         o.o_totalprice,\n         o.o_orderdate,\n         o.o_orderpriority,\n         o.o_clerk,\n         o.o_shippriority,\n         o.o_comment\nHAVING SUM(l.l_extendedprice * (1 - l.l_discount)) > 100000",
           "predicate": "( SELECT SUM(l.l_extendedprice * (1 - l.l_discount)) FROM lineitem l WHERE l.l_orderkey = o.o_orderkey ) > 100000"
-        },
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
         }
       }
     },
@@ -352,11 +296,6 @@
         "part"
       ],
       "applied_policies": {
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
-        },
         "part": {
           "file": "atomic_p7.sql",
           "raw_sql": "SELECT p.*\nFROM part p\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM lineitem l\n    WHERE l.l_partkey = p.p_partkey\n      AND l.l_quantity > 200\n)",
@@ -375,11 +314,6 @@
           "file": "atomic_p8.sql",
           "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    JOIN part p ON p.p_partkey = ps.ps_partkey\n    WHERE ps.ps_suppkey = s.s_suppkey\n      AND p.p_retailprice < 500\n)",
           "predicate": "NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    JOIN part p ON p.p_partkey = ps.ps_partkey\n    WHERE ps.ps_suppkey = s.s_suppkey\n      AND p.p_retailprice < 500\n)"
-        },
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
         }
       }
     },
@@ -416,11 +350,6 @@
         "part"
       ],
       "applied_policies": {
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
-        },
         "part": {
           "file": "atomic_p7.sql",
           "raw_sql": "SELECT p.*\nFROM part p\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM lineitem l\n    WHERE l.l_partkey = p.p_partkey\n      AND l.l_quantity > 200\n)",
@@ -445,11 +374,6 @@
           "file": "atomic_p6.sql",
           "raw_sql": "SELECT c.*\nFROM customer c\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    JOIN lineitem l \n         ON l.l_orderkey = o.o_orderkey\n    JOIN supplier s \n         ON s.s_suppkey = l.l_suppkey\n    JOIN nation ns \n         ON ns.n_nationkey = s.s_nationkey\n    JOIN nation nc \n         ON nc.n_nationkey = c.c_nationkey\n    WHERE o.o_custkey = c.c_custkey\n      AND ns.n_regionkey = nc.n_regionkey\n      AND ns.n_nationkey <> nc.n_nationkey\n)",
           "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    JOIN lineitem l \n         ON l.l_orderkey = o.o_orderkey\n    JOIN supplier s \n         ON s.s_suppkey = l.l_suppkey\n    JOIN nation ns \n         ON ns.n_nationkey = s.s_nationkey\n    JOIN nation nc \n         ON nc.n_nationkey = c.c_nationkey\n    WHERE o.o_custkey = c.c_custkey\n      AND ns.n_regionkey = nc.n_regionkey\n      AND ns.n_nationkey <> nc.n_nationkey\n)"
-        },
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
         }
       }
     },
@@ -460,11 +384,6 @@
         "part"
       ],
       "applied_policies": {
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
-        },
         "part": {
           "file": "atomic_p7.sql",
           "raw_sql": "SELECT p.*\nFROM part p\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM lineitem l\n    WHERE l.l_partkey = p.p_partkey\n      AND l.l_quantity > 200\n)",
@@ -486,11 +405,6 @@
           "file": "atomic_p8.sql",
           "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    JOIN part p ON p.p_partkey = ps.ps_partkey\n    WHERE ps.ps_suppkey = s.s_suppkey\n      AND p.p_retailprice < 500\n)",
           "predicate": "NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    JOIN part p ON p.p_partkey = ps.ps_partkey\n    WHERE ps.ps_suppkey = s.s_suppkey\n      AND p.p_retailprice < 500\n)"
-        },
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
         },
         "part": {
           "file": "atomic_p7.sql",
@@ -517,11 +431,6 @@
           "file": "atomic_p8.sql",
           "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    JOIN part p ON p.p_partkey = ps.ps_partkey\n    WHERE ps.ps_suppkey = s.s_suppkey\n      AND p.p_retailprice < 500\n)",
           "predicate": "NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    JOIN part p ON p.p_partkey = ps.ps_partkey\n    WHERE ps.ps_suppkey = s.s_suppkey\n      AND p.p_retailprice < 500\n)"
-        },
-        "lineitem": {
-          "file": "atomic_p15.sql",
-          "raw_sql": "SELECT l.*\nFROM lineitem l\nJOIN supplier s ON s.s_suppkey = l.l_suppkey\nJOIN nation n ON n.n_nationkey = s.s_nationkey\nWHERE\n(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)",
-          "predicate": "(\n    SELECT SUM(lx.l_extendedprice * (1 - lx.l_discount))\n    FROM lineitem lx\n    JOIN supplier sx ON sx.s_suppkey = lx.l_suppkey\n    WHERE sx.s_nationkey = n.n_nationkey\n)\n>\n(\n    SELECT SUM(ly.l_extendedprice * (1 - ly.l_discount))\n    FROM lineitem ly\n    JOIN orders oy ON oy.o_orderkey = ly.l_orderkey\n    JOIN customer cy ON cy.c_custkey = oy.o_custkey\n    WHERE cy.c_nationkey = n.n_nationkey\n)"
         }
       }
     },
