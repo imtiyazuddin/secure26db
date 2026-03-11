@@ -1,4 +1,4 @@
-TIMEOUT after 1.23s for Q8 in phase3
+TIMEOUT after 1.16s for Q8 in phase3
 EXPLAIN (ANALYZE, BUFFERS, VERBOSE, SUMMARY, FORMAT JSON) select
         o_year,
         sum(case
