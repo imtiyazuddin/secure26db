@@ -1,0 +1,682 @@
+[SYSTEM] Loading execution plan from rls_exp.json...
+
+--- PHASE 1: Running Baseline (Indexed RLS) ---
+b"\nDO $$\nDECLARE\n    r RECORD;\n    drop_statement TEXT;\nBEGIN\n    FOR r IN (\n        SELECT \n            n.nspname AS schemaname, \n            c_ind.relname AS indexname,\n            format('DROP INDEX %I.%I;', n.nspname, c_ind.relname) AS drop_cmd\n        FROM \n            pg_index ind\n        JOIN \n            pg_class c_ind ON c_ind.oid = ind.indexrelid\n        JOIN \n            pg_namespace n ON n.oid = c_ind.relnamespace\n        LEFT JOIN \n            pg_constraint cons ON cons.conindid = ind.indexrelid\n        WHERE \n            n.nspname = 'public' \n            AND cons.oid IS NULL \n    )\n    LOOP\n        RAISE INFO '%', r.drop_cmd; \n        EXECUTE r.drop_cmd;\n    END LOOP;\nEND $$;\n"
+  -> Building policy index on nation for column: (n_regionkey)
+b'CREATE INDEX "idx_nation_n_regionkey_policy_cov" ON "nation" ("n_regionkey");'
+  -> Building policy index on customer for column: (c_acctbal)
+b'CREATE INDEX "idx_customer_c_acctbal_policy_cov" ON "customer" ("c_acctbal");'
+  -> Building policy index on nation for column: (n_nationkey)
+b'CREATE INDEX "idx_nation_n_nationkey_policy_cov" ON "nation" ("n_nationkey");'
+  -> Building policy index on customer for column: (c_nationkey)
+b'CREATE INDEX "idx_customer_c_nationkey_policy_cov" ON "customer" ("c_nationkey");'
+  -> Building policy index on region for column: (r_regionkey)
+b'CREATE INDEX "idx_region_r_regionkey_policy_cov" ON "region" ("r_regionkey");'
+  -> Building policy index on region for column: (r_name)
+b'CREATE INDEX "idx_region_r_name_policy_cov" ON "region" ("r_name");'
+  -> Building policy index on supplier for column: (s_nationkey)
+b'CREATE INDEX "idx_supplier_s_nationkey_policy_cov" ON "supplier" ("s_nationkey");'
+  -> Building policy index on supplier for column: (s_acctbal)
+b'CREATE INDEX "idx_supplier_s_acctbal_policy_cov" ON "supplier" ("s_acctbal");'
+  -> Building policy index on partsupp for column: (ps_availqty)
+b'CREATE INDEX "idx_partsupp_ps_availqty_policy_cov" ON "partsupp" ("ps_availqty");'
+  -> Building policy index on supplier for column: (s_suppkey)
+b'CREATE INDEX "idx_supplier_s_suppkey_policy_cov" ON "supplier" ("s_suppkey");'
+  -> Building policy index on partsupp for column: (ps_suppkey)
+b'CREATE INDEX "idx_partsupp_ps_suppkey_policy_cov" ON "partsupp" ("ps_suppkey");'
+  -> Building policy index on lineitem for column: (l_partkey)
+b'CREATE INDEX "idx_lineitem_l_partkey_policy_cov" ON "lineitem" ("l_partkey");'
+  -> Building policy index on partsupp for column: (ps_partkey)
+b'CREATE INDEX "idx_partsupp_ps_partkey_policy_cov" ON "partsupp" ("ps_partkey");'
+  -> Building policy index on lineitem for column: (l_orderkey)
+b'CREATE INDEX "idx_lineitem_l_orderkey_policy_cov" ON "lineitem" ("l_orderkey");'
+  -> Building policy index on orders for column: (o_orderkey)
+b'CREATE INDEX "idx_orders_o_orderkey_policy_cov" ON "orders" ("o_orderkey");'
+  -> Building policy index on orders for column: (o_orderpriority)
+b'CREATE INDEX "idx_orders_o_orderpriority_policy_cov" ON "orders" ("o_orderpriority");'
+  -> Building policy index on lineitem for column: (l_suppkey)
+b'CREATE INDEX "idx_lineitem_l_suppkey_policy_cov" ON "lineitem" ("l_suppkey");'
+  -> Skipping PK index on region: all PK cols already indexed
+  -> Skipping PK index on nation: all PK cols already indexed
+  -> Building PK index on part: (p_partkey)
+b'CREATE INDEX "idx_part_pk" ON "part" ("p_partkey");'
+  -> Skipping PK index on supplier: all PK cols already indexed
+  -> Skipping PK index on partsupp: all PK cols already indexed
+  -> Building PK index on customer: (c_custkey)
+b'CREATE INDEX "idx_customer_pk" ON "customer" ("c_custkey");'
+  -> Skipping PK index on orders: all PK cols already indexed
+  -> Building PK index on lineitem: (l_orderkey, l_linenumber)
+b'CREATE INDEX "idx_lineitem_pk" ON "lineitem" ("l_orderkey", "l_linenumber");'
+  -> Building FK index on nation: (n_regionkey)
+b'CREATE INDEX idx_nation_fk_n_regionkey ON nation (n_regionkey);'
+  -> Building FK index on supplier: (s_nationkey)
+b'CREATE INDEX idx_supplier_fk_s_nationkey ON supplier (s_nationkey);'
+  -> Building FK index on customer: (c_nationkey)
+b'CREATE INDEX idx_customer_fk_c_nationkey ON customer (c_nationkey);'
+  -> Building FK index on partsupp: (ps_partkey)
+b'CREATE INDEX idx_partsupp_fk_ps_partkey ON partsupp (ps_partkey);'
+  -> Building FK index on partsupp: (ps_suppkey)
+b'CREATE INDEX idx_partsupp_fk_ps_suppkey ON partsupp (ps_suppkey);'
+  -> Building FK index on orders: (o_custkey)
+b'CREATE INDEX idx_orders_fk_o_custkey ON orders (o_custkey);'
+  -> Building FK index on lineitem: (l_orderkey)
+b'CREATE INDEX idx_lineitem_fk_l_orderkey ON lineitem (l_orderkey);'
+  -> Building FK index on lineitem: (l_partkey, l_suppkey)
+b'CREATE INDEX idx_lineitem_fk_l_partkey_l_suppkey ON lineitem (l_partkey, l_suppkey);'
+  -> [LOG] Securing customer
+     |-- Logical Filter: c.c_acctbal > 0
+  AND EXISTS (
+    SELECT 1
+    FROM nation n, region r
+    WHERE n.n_nationkey = c.c_nationkey
+      AND n.n_regionkey = r.r_regionkey
+      AND r.r_name IN ('EUROPE', 'AMERICA')
+  )
+     |-- Applied Policy: USING (c_custkey IN (SELECT c_custkey FROM rls_bypass_view_customer))
+  -> [LOG] Securing supplier
+     |-- Logical Filter: s.s_acctbal > 0
+  AND EXISTS (
+    SELECT 1
+    FROM nation n, region r
+    WHERE n.n_nationkey = s.s_nationkey
+      AND n.n_regionkey = r.r_regionkey
+      AND r.r_name = 'EUROPE'
+  )
+     |-- Applied Policy: USING (s_suppkey IN (SELECT s_suppkey FROM rls_bypass_view_supplier))
+  -> [LOG] Securing partsupp
+     |-- Logical Filter: ps.ps_availqty > 100
+  AND EXISTS (
+    SELECT 1
+    FROM supplier s
+    WHERE s.s_suppkey = ps.ps_suppkey
+      AND s.s_acctbal > 0
+  )
+     |-- Applied Policy: USING ((ps_partkey, ps_suppkey) IN (SELECT ps_partkey, ps_suppkey FROM rls_bypass_view_partsupp))
+  -> [LOG] Securing lineitem
+     |-- Logical Filter: EXISTS (
+    SELECT 1
+    FROM orders o
+    WHERE o.o_orderkey = l.l_orderkey
+      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')
+  )
+  AND EXISTS (
+    SELECT 1
+    FROM partsupp ps
+    WHERE ps.ps_partkey = l.l_partkey
+      AND ps.ps_suppkey = l.l_suppkey
+      AND ps.ps_availqty > 0
+  )
+     |-- Applied Policy: USING ((l_orderkey, l_linenumber) IN (SELECT l_orderkey, l_linenumber FROM rls_bypass_view_lineitem))
+  -> [DEBUG] Firing Q1. Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q1_baseline.json
+      Planning Time: 9.42 ms | Execution Time: 3603.07 ms | Total: 3612.50 ms
+  [Q1] Indexed RLS Baseline: 3.6031s
+
+  -> [DEBUG] Firing Q2. Active Predicates:
+       |-- partsupp: ps.ps_availqty > 100   AND EXISTS (     SELECT 1     FROM supplier s     WHERE s.s_suppkey = ps.ps_suppkey       AND s.s_acctbal > 0   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q2_baseline.json
+      Planning Time: 9.11 ms | Execution Time: 684.69 ms | Total: 693.80 ms
+  [Q2] Indexed RLS Baseline: 0.6847s
+
+  -> [DEBUG] Firing Q3. Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q3_baseline.json
+      Planning Time: 4.79 ms | Execution Time: 2852.57 ms | Total: 2857.36 ms
+  [Q3] Indexed RLS Baseline: 2.8526s
+
+  -> [DEBUG] Firing Q4. Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q4_baseline.json
+      Planning Time: 2.71 ms | Execution Time: 3008.14 ms | Total: 3010.85 ms
+  [Q4] Indexed RLS Baseline: 3.0081s
+
+  -> [DEBUG] Firing Q5. Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q5_baseline.json
+      Planning Time: 6.50 ms | Execution Time: 121.98 ms | Total: 128.48 ms
+  [Q5] Indexed RLS Baseline: 0.1220s
+
+  -> [DEBUG] Firing Q6. Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q6_baseline.json
+      Planning Time: 2.18 ms | Execution Time: 2905.52 ms | Total: 2907.70 ms
+  [Q6] Indexed RLS Baseline: 2.9055s
+
+  -> [DEBUG] Firing Q7. Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q7_baseline.json
+      Planning Time: 4.81 ms | Execution Time: 2660.14 ms | Total: 2664.95 ms
+  [Q7] Indexed RLS Baseline: 2.6601s
+
+  -> [DEBUG] Firing Q8. Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q8_baseline.json
+      Planning Time: 5.95 ms | Execution Time: 122.59 ms | Total: 128.54 ms
+  [Q8] Indexed RLS Baseline: 0.1226s
+
+  -> [DEBUG] Firing Q9. Active Predicates:
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- partsupp: ps.ps_availqty > 100   AND EXISTS (     SELECT 1     FROM supplier s     WHERE s.s_suppkey = ps.ps_suppkey       AND s.s_acctbal > 0   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q9_baseline.json
+      Planning Time: 4.84 ms | Execution Time: 3173.62 ms | Total: 3178.45 ms
+  [Q9] Indexed RLS Baseline: 3.1736s
+
+  -> [DEBUG] Firing Q10. Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q10_baseline.json
+      Planning Time: 5.99 ms | Execution Time: 2668.80 ms | Total: 2674.79 ms
+  [Q10] Indexed RLS Baseline: 2.6688s
+
+  -> [DEBUG] Firing Q11. Active Predicates:
+       |-- partsupp: ps.ps_availqty > 100   AND EXISTS (     SELECT 1     FROM supplier s     WHERE s.s_suppkey = ps.ps_suppkey       AND s.s_acctbal > 0   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q11_baseline.json
+      Planning Time: 3.55 ms | Execution Time: 44.30 ms | Total: 47.86 ms
+  [Q11] Indexed RLS Baseline: 0.0443s
+
+  -> [DEBUG] Firing Q12. Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q12_baseline.json
+      Planning Time: 4.12 ms | Execution Time: 1897.06 ms | Total: 1901.18 ms
+  [Q12] Indexed RLS Baseline: 1.8971s
+
+  -> [DEBUG] Firing Q13. Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q13_baseline.json
+      Planning Time: 1.03 ms | Execution Time: 1363.07 ms | Total: 1364.10 ms
+  [Q13] Indexed RLS Baseline: 1.3631s
+
+  -> [DEBUG] Firing Q14. Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q14_baseline.json
+      Planning Time: 1.66 ms | Execution Time: 2646.40 ms | Total: 2648.06 ms
+  [Q14] Indexed RLS Baseline: 2.6464s
+
+  -> [DEBUG] Firing Q15. Active Predicates:
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q15_baseline.json
+      Planning Time: 1.94 ms | Execution Time: 2574.79 ms | Total: 2576.73 ms
+  [Q15] Indexed RLS Baseline: 2.5748s
+
+  -> [DEBUG] Firing Q16. Active Predicates:
+       |-- partsupp: ps.ps_availqty > 100   AND EXISTS (     SELECT 1     FROM supplier s     WHERE s.s_suppkey = ps.ps_suppkey       AND s.s_acctbal > 0   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q16_baseline.json
+      Planning Time: 1.73 ms | Execution Time: 365.37 ms | Total: 367.10 ms
+  [Q16] Indexed RLS Baseline: 0.3654s
+
+  -> [DEBUG] Firing Q17. Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q17_baseline.json
+      Planning Time: 5.20 ms | Execution Time: 9639.62 ms | Total: 9644.82 ms
+  [Q17] Indexed RLS Baseline: 9.6396s
+
+  -> [DEBUG] Firing Q18. Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q18_baseline.json
+      Planning Time: 6.56 ms | Execution Time: 4156.88 ms | Total: 4163.45 ms
+  [Q18] Indexed RLS Baseline: 4.1569s
+
+  -> [DEBUG] Firing Q19. Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q19_baseline.json
+      Planning Time: 4.23 ms | Execution Time: 2385.24 ms | Total: 2389.47 ms
+  [Q19] Indexed RLS Baseline: 2.3852s
+
+  -> [DEBUG] Firing Q20. Active Predicates:
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- partsupp: ps.ps_availqty > 100   AND EXISTS (     SELECT 1     FROM supplier s     WHERE s.s_suppkey = ps.ps_suppkey       AND s.s_acctbal > 0   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q20_baseline.json
+      Planning Time: 3.74 ms | Execution Time: 1483.85 ms | Total: 1487.59 ms
+  [Q20] Indexed RLS Baseline: 1.4838s
+
+  -> [DEBUG] Firing Q21. Active Predicates:
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q21_baseline.json
+      Planning Time: 8.29 ms | Execution Time: 5.46 ms | Total: 13.75 ms
+  [Q21] Indexed RLS Baseline: 0.0055s
+
+  -> [DEBUG] Firing Q22. Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+    -> Saved EXPLAIN to RLS-results/phase1/Q22_baseline.json
+      Planning Time: 1.60 ms | Execution Time: 244.69 ms | Total: 246.29 ms
+  [Q22] Indexed RLS Baseline: 0.2447s
+
+[sudo] password for securedb: b"\nDO $$\nDECLARE\n    r RECORD;\n    drop_statement TEXT;\nBEGIN\n    FOR r IN (\n        SELECT \n            n.nspname AS schemaname, \n            c_ind.relname AS indexname,\n            format('DROP INDEX %I.%I;', n.nspname, c_ind.relname) AS drop_cmd\n        FROM \n            pg_index ind\n        JOIN \n            pg_class c_ind ON c_ind.oid = ind.indexrelid\n        JOIN \n            pg_namespace n ON n.oid = c_ind.relnamespace\n        LEFT JOIN \n            pg_constraint cons ON cons.conindid = ind.indexrelid\n        WHERE \n            n.nspname = 'public' \n            AND cons.oid IS NULL \n    )\n    LOOP\n        RAISE INFO '%', r.drop_cmd; \n        EXECUTE r.drop_cmd;\n    END LOOP;\nEND $$;\n"
+Restarting PostgreSQL...
+Restart command issued.
+Waiting for PostgreSQL to become ready...
+PostgreSQL is ready.
+
+--- PHASE 2: Running Exp 1 (Pure Native RLS) ---
+  -> Building PK index on region: (r_regionkey)
+b'CREATE INDEX idx_region_pk ON region (r_regionkey);'
+  -> Building PK index on nation: (n_nationkey)
+b'CREATE INDEX idx_nation_pk ON nation (n_nationkey);'
+  -> Building PK index on part: (p_partkey)
+b'CREATE INDEX idx_part_pk ON part (p_partkey);'
+  -> Building PK index on supplier: (s_suppkey)
+b'CREATE INDEX idx_supplier_pk ON supplier (s_suppkey);'
+  -> Building PK index on partsupp: (ps_partkey, ps_suppkey)
+b'CREATE INDEX idx_partsupp_pk ON partsupp (ps_partkey, ps_suppkey);'
+  -> Building PK index on customer: (c_custkey)
+b'CREATE INDEX idx_customer_pk ON customer (c_custkey);'
+  -> Building PK index on orders: (o_orderkey)
+b'CREATE INDEX idx_orders_pk ON orders (o_orderkey);'
+  -> Building PK index on lineitem: (l_orderkey, l_linenumber)
+b'CREATE INDEX idx_lineitem_pk ON lineitem (l_orderkey, l_linenumber);'
+  -> Building FK index on nation: (n_regionkey)
+b'CREATE INDEX idx_nation_fk_n_regionkey ON nation (n_regionkey);'
+  -> Building FK index on supplier: (s_nationkey)
+b'CREATE INDEX idx_supplier_fk_s_nationkey ON supplier (s_nationkey);'
+  -> Building FK index on customer: (c_nationkey)
+b'CREATE INDEX idx_customer_fk_c_nationkey ON customer (c_nationkey);'
+  -> Building FK index on partsupp: (ps_partkey)
+b'CREATE INDEX idx_partsupp_fk_ps_partkey ON partsupp (ps_partkey);'
+  -> Building FK index on partsupp: (ps_suppkey)
+b'CREATE INDEX idx_partsupp_fk_ps_suppkey ON partsupp (ps_suppkey);'
+  -> Building FK index on orders: (o_custkey)
+b'CREATE INDEX idx_orders_fk_o_custkey ON orders (o_custkey);'
+  -> Building FK index on lineitem: (l_orderkey)
+b'CREATE INDEX idx_lineitem_fk_l_orderkey ON lineitem (l_orderkey);'
+  -> Building FK index on lineitem: (l_partkey, l_suppkey)
+b'CREATE INDEX idx_lineitem_fk_l_partkey_l_suppkey ON lineitem (l_partkey, l_suppkey);'
+  -> [LOG] Securing customer
+     |-- Logical Filter: c.c_acctbal > 0
+  AND EXISTS (
+    SELECT 1
+    FROM nation n, region r
+    WHERE n.n_nationkey = c.c_nationkey
+      AND n.n_regionkey = r.r_regionkey
+      AND r.r_name IN ('EUROPE', 'AMERICA')
+  )
+     |-- Applied Policy: USING (c_custkey IN (SELECT c_custkey FROM rls_bypass_view_customer))
+  -> [LOG] Securing supplier
+     |-- Logical Filter: s.s_acctbal > 0
+  AND EXISTS (
+    SELECT 1
+    FROM nation n, region r
+    WHERE n.n_nationkey = s.s_nationkey
+      AND n.n_regionkey = r.r_regionkey
+      AND r.r_name = 'EUROPE'
+  )
+     |-- Applied Policy: USING (s_suppkey IN (SELECT s_suppkey FROM rls_bypass_view_supplier))
+  -> [LOG] Securing partsupp
+     |-- Logical Filter: ps.ps_availqty > 100
+  AND EXISTS (
+    SELECT 1
+    FROM supplier s
+    WHERE s.s_suppkey = ps.ps_suppkey
+      AND s.s_acctbal > 0
+  )
+     |-- Applied Policy: USING ((ps_partkey, ps_suppkey) IN (SELECT ps_partkey, ps_suppkey FROM rls_bypass_view_partsupp))
+  -> [LOG] Securing lineitem
+     |-- Logical Filter: EXISTS (
+    SELECT 1
+    FROM orders o
+    WHERE o.o_orderkey = l.l_orderkey
+      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')
+  )
+  AND EXISTS (
+    SELECT 1
+    FROM partsupp ps
+    WHERE ps.ps_partkey = l.l_partkey
+      AND ps.ps_suppkey = l.l_suppkey
+      AND ps.ps_availqty > 0
+  )
+     |-- Applied Policy: USING ((l_orderkey, l_linenumber) IN (SELECT l_orderkey, l_linenumber FROM rls_bypass_view_lineitem))
+  -> [DEBUG] Firing Q1 (Pure RLS). Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q1_pure_rls.json
+      Planning Time: 5.71 ms | Execution Time: 3229.26 ms | Total: 3234.97 ms
+  [Q1] Pure RLS Avg: 3.2293s
+
+  -> [DEBUG] Firing Q2 (Pure RLS). Active Predicates:
+       |-- partsupp: ps.ps_availqty > 100   AND EXISTS (     SELECT 1     FROM supplier s     WHERE s.s_suppkey = ps.ps_suppkey       AND s.s_acctbal > 0   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q2_pure_rls.json
+      Planning Time: 3.42 ms | Execution Time: 641.70 ms | Total: 645.12 ms
+  [Q2] Pure RLS Avg: 0.6417s
+
+  -> [DEBUG] Firing Q3 (Pure RLS). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q3_pure_rls.json
+      Planning Time: 3.64 ms | Execution Time: 2828.04 ms | Total: 2831.68 ms
+  [Q3] Pure RLS Avg: 2.8280s
+
+  -> [DEBUG] Firing Q4 (Pure RLS). Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q4_pure_rls.json
+      Planning Time: 2.38 ms | Execution Time: 2895.37 ms | Total: 2897.76 ms
+  [Q4] Pure RLS Avg: 2.8954s
+
+  -> [DEBUG] Firing Q5 (Pure RLS). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q5_pure_rls.json
+      Planning Time: 5.07 ms | Execution Time: 120.53 ms | Total: 125.60 ms
+  [Q5] Pure RLS Avg: 0.1205s
+
+  -> [DEBUG] Firing Q6 (Pure RLS). Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q6_pure_rls.json
+      Planning Time: 2.91 ms | Execution Time: 2797.45 ms | Total: 2800.36 ms
+  [Q6] Pure RLS Avg: 2.7975s
+
+  -> [DEBUG] Firing Q7 (Pure RLS). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q7_pure_rls.json
+      Planning Time: 2.94 ms | Execution Time: 2562.42 ms | Total: 2565.36 ms
+  [Q7] Pure RLS Avg: 2.5624s
+
+  -> [DEBUG] Firing Q8 (Pure RLS). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q8_pure_rls.json
+      Planning Time: 5.06 ms | Execution Time: 122.29 ms | Total: 127.35 ms
+  [Q8] Pure RLS Avg: 0.1223s
+
+  -> [DEBUG] Firing Q9 (Pure RLS). Active Predicates:
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- partsupp: ps.ps_availqty > 100   AND EXISTS (     SELECT 1     FROM supplier s     WHERE s.s_suppkey = ps.ps_suppkey       AND s.s_acctbal > 0   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q9_pure_rls.json
+      Planning Time: 4.35 ms | Execution Time: 3108.29 ms | Total: 3112.64 ms
+  [Q9] Pure RLS Avg: 3.1083s
+
+  -> [DEBUG] Firing Q10 (Pure RLS). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q10_pure_rls.json
+      Planning Time: 3.57 ms | Execution Time: 2625.57 ms | Total: 2629.14 ms
+  [Q10] Pure RLS Avg: 2.6256s
+
+  -> [DEBUG] Firing Q11 (Pure RLS). Active Predicates:
+       |-- partsupp: ps.ps_availqty > 100   AND EXISTS (     SELECT 1     FROM supplier s     WHERE s.s_suppkey = ps.ps_suppkey       AND s.s_acctbal > 0   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q11_pure_rls.json
+      Planning Time: 3.39 ms | Execution Time: 36.60 ms | Total: 39.99 ms
+  [Q11] Pure RLS Avg: 0.0366s
+
+  -> [DEBUG] Firing Q12 (Pure RLS). Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q12_pure_rls.json
+      Planning Time: 3.37 ms | Execution Time: 1882.39 ms | Total: 1885.76 ms
+  [Q12] Pure RLS Avg: 1.8824s
+
+  -> [DEBUG] Firing Q13 (Pure RLS). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q13_pure_rls.json
+      Planning Time: 0.90 ms | Execution Time: 1344.26 ms | Total: 1345.15 ms
+  [Q13] Pure RLS Avg: 1.3443s
+
+  -> [DEBUG] Firing Q14 (Pure RLS). Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q14_pure_rls.json
+      Planning Time: 1.37 ms | Execution Time: 2636.51 ms | Total: 2637.87 ms
+  [Q14] Pure RLS Avg: 2.6365s
+
+  -> [DEBUG] Firing Q15 (Pure RLS). Active Predicates:
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q15_pure_rls.json
+      Planning Time: 2.11 ms | Execution Time: 2559.43 ms | Total: 2561.54 ms
+  [Q15] Pure RLS Avg: 2.5594s
+
+  -> [DEBUG] Firing Q16 (Pure RLS). Active Predicates:
+       |-- partsupp: ps.ps_availqty > 100   AND EXISTS (     SELECT 1     FROM supplier s     WHERE s.s_suppkey = ps.ps_suppkey       AND s.s_acctbal > 0   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q16_pure_rls.json
+      Planning Time: 1.43 ms | Execution Time: 347.33 ms | Total: 348.76 ms
+  [Q16] Pure RLS Avg: 0.3473s
+
+  -> [DEBUG] Firing Q17 (Pure RLS). Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q17_pure_rls.json
+      Planning Time: 3.31 ms | Execution Time: 9626.30 ms | Total: 9629.61 ms
+  [Q17] Pure RLS Avg: 9.6263s
+
+  -> [DEBUG] Firing Q18 (Pure RLS). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q18_pure_rls.json
+      Planning Time: 4.96 ms | Execution Time: 4138.93 ms | Total: 4143.89 ms
+  [Q18] Pure RLS Avg: 4.1389s
+
+  -> [DEBUG] Firing Q19 (Pure RLS). Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q19_pure_rls.json
+      Planning Time: 3.83 ms | Execution Time: 2378.61 ms | Total: 2382.44 ms
+  [Q19] Pure RLS Avg: 2.3786s
+
+  -> [DEBUG] Firing Q20 (Pure RLS). Active Predicates:
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- partsupp: ps.ps_availqty > 100   AND EXISTS (     SELECT 1     FROM supplier s     WHERE s.s_suppkey = ps.ps_suppkey       AND s.s_acctbal > 0   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q20_pure_rls.json
+      Planning Time: 2.58 ms | Execution Time: 1374.96 ms | Total: 1377.54 ms
+  [Q20] Pure RLS Avg: 1.3750s
+
+  -> [DEBUG] Firing Q21 (Pure RLS). Active Predicates:
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q21_pure_rls.json
+      Planning Time: 6.23 ms | Execution Time: 4.08 ms | Total: 10.30 ms
+  [Q21] Pure RLS Avg: 0.0041s
+
+  -> [DEBUG] Firing Q22 (Pure RLS). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+    -> Saved EXPLAIN to RLS-results/phase2/Q22_pure_rls.json
+      Planning Time: 1.44 ms | Execution Time: 246.74 ms | Total: 248.17 ms
+  [Q22] Pure RLS Avg: 0.2467s
+
+
+--- PHASE 3: Running Exp 2 (Secure Views) ---
+b"\nDO $$\nDECLARE\n    r RECORD;\n    drop_statement TEXT;\nBEGIN\n    FOR r IN (\n        SELECT \n            n.nspname AS schemaname, \n            c_ind.relname AS indexname,\n            format('DROP INDEX %I.%I;', n.nspname, c_ind.relname) AS drop_cmd\n        FROM \n            pg_index ind\n        JOIN \n            pg_class c_ind ON c_ind.oid = ind.indexrelid\n        JOIN \n            pg_namespace n ON n.oid = c_ind.relnamespace\n        LEFT JOIN \n            pg_constraint cons ON cons.conindid = ind.indexrelid\n        WHERE \n            n.nspname = 'public' \n            AND cons.oid IS NULL \n    )\n    LOOP\n        RAISE INFO '%', r.drop_cmd; \n        EXECUTE r.drop_cmd;\n    END LOOP;\nEND $$;\n"
+Restarting PostgreSQL...
+Restart command issued.
+Waiting for PostgreSQL to become ready...
+PostgreSQL is ready.
+  -> Building PK index on region: (r_regionkey)
+b'CREATE INDEX idx_region_pk ON region (r_regionkey);'
+  -> Building PK index on nation: (n_nationkey)
+b'CREATE INDEX idx_nation_pk ON nation (n_nationkey);'
+  -> Building PK index on part: (p_partkey)
+b'CREATE INDEX idx_part_pk ON part (p_partkey);'
+  -> Building PK index on supplier: (s_suppkey)
+b'CREATE INDEX idx_supplier_pk ON supplier (s_suppkey);'
+  -> Building PK index on partsupp: (ps_partkey, ps_suppkey)
+b'CREATE INDEX idx_partsupp_pk ON partsupp (ps_partkey, ps_suppkey);'
+  -> Building PK index on customer: (c_custkey)
+b'CREATE INDEX idx_customer_pk ON customer (c_custkey);'
+  -> Building PK index on orders: (o_orderkey)
+b'CREATE INDEX idx_orders_pk ON orders (o_orderkey);'
+  -> Building PK index on lineitem: (l_orderkey, l_linenumber)
+b'CREATE INDEX idx_lineitem_pk ON lineitem (l_orderkey, l_linenumber);'
+  -> Building FK index on nation: (n_regionkey)
+b'CREATE INDEX idx_nation_fk_n_regionkey ON nation (n_regionkey);'
+  -> Building FK index on supplier: (s_nationkey)
+b'CREATE INDEX idx_supplier_fk_s_nationkey ON supplier (s_nationkey);'
+  -> Building FK index on customer: (c_nationkey)
+b'CREATE INDEX idx_customer_fk_c_nationkey ON customer (c_nationkey);'
+  -> Building FK index on partsupp: (ps_partkey)
+b'CREATE INDEX idx_partsupp_fk_ps_partkey ON partsupp (ps_partkey);'
+  -> Building FK index on partsupp: (ps_suppkey)
+b'CREATE INDEX idx_partsupp_fk_ps_suppkey ON partsupp (ps_suppkey);'
+  -> Building FK index on orders: (o_custkey)
+b'CREATE INDEX idx_orders_fk_o_custkey ON orders (o_custkey);'
+  -> Building FK index on lineitem: (l_orderkey)
+b'CREATE INDEX idx_lineitem_fk_l_orderkey ON lineitem (l_orderkey);'
+  -> Building FK index on lineitem: (l_partkey, l_suppkey)
+b'CREATE INDEX idx_lineitem_fk_l_partkey_l_suppkey ON lineitem (l_partkey, l_suppkey);'
+  -> [DEBUG] Firing Q1 (Secure Views). Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q1_secure_views.json
+      Planning Time: 4.03 ms | Execution Time: 1547.30 ms | Total: 1551.32 ms
+  [Q1] Secure Views Avg: 1.5473s
+
+  -> [DEBUG] Firing Q2 (Secure Views). Active Predicates:
+       |-- partsupp: ps.ps_availqty > 100   AND EXISTS (     SELECT 1     FROM supplier s     WHERE s.s_suppkey = ps.ps_suppkey       AND s.s_acctbal > 0   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q2_secure_views.json
+      Planning Time: 20.74 ms | Execution Time: 1855.91 ms | Total: 1876.65 ms
+  [Q2] Secure Views Avg: 1.8559s
+
+  -> [DEBUG] Firing Q3 (Secure Views). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q3_secure_views.json
+      Planning Time: 7.50 ms | Execution Time: 1475.97 ms | Total: 1483.48 ms
+  [Q3] Secure Views Avg: 1.4760s
+
+  -> [DEBUG] Firing Q4 (Secure Views). Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q4_secure_views.json
+      Planning Time: 4.73 ms | Execution Time: 523.17 ms | Total: 527.90 ms
+  [Q4] Secure Views Avg: 0.5232s
+
+  -> [DEBUG] Firing Q5 (Secure Views). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q5_secure_views.json
+      Planning Time: 10.89 ms | Execution Time: 68.62 ms | Total: 79.50 ms
+  [Q5] Secure Views Avg: 0.0686s
+
+  -> [DEBUG] Firing Q6 (Secure Views). Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q6_secure_views.json
+      Planning Time: 3.64 ms | Execution Time: 564.84 ms | Total: 568.48 ms
+  [Q6] Secure Views Avg: 0.5648s
+
+  -> [DEBUG] Firing Q7 (Secure Views). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q7_secure_views.json
+      Planning Time: 10.03 ms | Execution Time: 2226.38 ms | Total: 2236.41 ms
+  [Q7] Secure Views Avg: 2.2264s
+
+  -> [DEBUG] Firing Q8 (Secure Views). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> TIMEOUT. Logged at RLS-results/phase3/Q8_secure_views_TIMEOUT.txt
+  [Q8] Secure Views Avg: TIMEOUT
+
+  -> [DEBUG] Firing Q9 (Secure Views). Active Predicates:
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- partsupp: ps.ps_availqty > 100   AND EXISTS (     SELECT 1     FROM supplier s     WHERE s.s_suppkey = ps.ps_suppkey       AND s.s_acctbal > 0   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q9_secure_views.json
+      Planning Time: 6.31 ms | Execution Time: 2558.75 ms | Total: 2565.06 ms
+  [Q9] Secure Views Avg: 2.5587s
+
+  -> [DEBUG] Firing Q10 (Secure Views). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q10_secure_views.json
+      Planning Time: 8.21 ms | Execution Time: 1417.77 ms | Total: 1425.98 ms
+  [Q10] Secure Views Avg: 1.4178s
+
+  -> [DEBUG] Firing Q11 (Secure Views). Active Predicates:
+       |-- partsupp: ps.ps_availqty > 100   AND EXISTS (     SELECT 1     FROM supplier s     WHERE s.s_suppkey = ps.ps_suppkey       AND s.s_acctbal > 0   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q11_secure_views.json
+      Planning Time: 9.56 ms | Execution Time: 8.98 ms | Total: 18.54 ms
+  [Q11] Secure Views Avg: 0.0090s
+
+  -> [DEBUG] Firing Q12 (Secure Views). Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q12_secure_views.json
+      Planning Time: 2.83 ms | Execution Time: 362.17 ms | Total: 365.01 ms
+  [Q12] Secure Views Avg: 0.3622s
+
+  -> [DEBUG] Firing Q13 (Secure Views). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q13_secure_views.json
+      Planning Time: 2.14 ms | Execution Time: 1365.25 ms | Total: 1367.39 ms
+  [Q13] Secure Views Avg: 1.3653s
+
+  -> [DEBUG] Firing Q14 (Secure Views). Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q14_secure_views.json
+      Planning Time: 1.40 ms | Execution Time: 483.75 ms | Total: 485.15 ms
+  [Q14] Secure Views Avg: 0.4838s
+
+  -> [DEBUG] Firing Q15 (Secure Views). Active Predicates:
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q15_secure_views.json
+      Planning Time: 5.09 ms | Execution Time: 1223.10 ms | Total: 1228.20 ms
+  [Q15] Secure Views Avg: 1.2231s
+
+  -> [DEBUG] Firing Q16 (Secure Views). Active Predicates:
+       |-- partsupp: ps.ps_availqty > 100   AND EXISTS (     SELECT 1     FROM supplier s     WHERE s.s_suppkey = ps.ps_suppkey       AND s.s_acctbal > 0   )
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q16_secure_views.json
+      Planning Time: 4.67 ms | Execution Time: 206.39 ms | Total: 211.06 ms
+  [Q16] Secure Views Avg: 0.2064s
+
+  -> [DEBUG] Firing Q17 (Secure Views). Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q17_secure_views.json
+      Planning Time: 3.40 ms | Execution Time: 3232.22 ms | Total: 3235.63 ms
+  [Q17] Secure Views Avg: 3.2322s
+
+  -> [DEBUG] Firing Q18 (Secure Views). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q18_secure_views.json
+      Planning Time: 7.86 ms | Execution Time: 4603.18 ms | Total: 4611.04 ms
+  [Q18] Secure Views Avg: 4.6032s
+
+  -> [DEBUG] Firing Q19 (Secure Views). Active Predicates:
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q19_secure_views.json
+      Planning Time: 4.82 ms | Execution Time: 84.46 ms | Total: 89.28 ms
+  [Q19] Secure Views Avg: 0.0845s
+
+  -> [DEBUG] Firing Q20 (Secure Views). Active Predicates:
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- partsupp: ps.ps_availqty > 100   AND EXISTS (     SELECT 1     FROM supplier s     WHERE s.s_suppkey = ps.ps_suppkey       AND s.s_acctbal > 0   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q20_secure_views.json
+      Planning Time: 6.77 ms | Execution Time: 554.14 ms | Total: 560.91 ms
+  [Q20] Secure Views Avg: 0.5541s
+
+  -> [DEBUG] Firing Q21 (Secure Views). Active Predicates:
+       |-- supplier: s.s_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = s.s_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name = 'EUROPE'   )
+       |-- lineitem: EXISTS (     SELECT 1     FROM orders o     WHERE o.o_orderkey = l.l_orderkey       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')   )   AND EXISTS (     SELECT 1     FROM partsupp ps     WHERE ps.ps_partkey = l.l_partkey       AND ps.ps_suppkey = l.l_suppkey       AND ps.ps_availqty > 0   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q21_secure_views.json
+      Planning Time: 6.91 ms | Execution Time: 35.67 ms | Total: 42.58 ms
+  [Q21] Secure Views Avg: 0.0357s
+
+  -> [DEBUG] Firing Q22 (Secure Views). Active Predicates:
+       |-- customer: c.c_acctbal > 0   AND EXISTS (     SELECT 1     FROM nation n, region r     WHERE n.n_nationkey = c.c_nationkey       AND n.n_regionkey = r.r_regionkey       AND r.r_name IN ('EUROPE', 'AMERICA')   )
+    -> Saved EXPLAIN to RLS-results/phase3/Q22_secure_views.json
+      Planning Time: 3.25 ms | Execution Time: 174.80 ms | Total: 178.05 ms
+  [Q22] Secure Views Avg: 0.1748s
+
+
+Saved as postgres_exp2_clean_4P.png
