@@ -1,0 +1,25 @@
+
+Resetting indexes...
+  Dropped all non-constraint indexes.
+
+Building PK indexes...
+  -> Building PK index on region: (r_regionkey)
+  -> Building PK index on nation: (n_nationkey)
+  -> Building PK index on part: (p_partkey)
+  -> Building PK index on supplier: (s_suppkey)
+  -> Building PK index on partsupp: (ps_partkey, ps_suppkey)
+  -> Building PK index on customer: (c_custkey)
+  -> Building PK index on orders: (o_orderkey)
+  -> Building PK index on lineitem: (l_orderkey, l_linenumber)
+
+Building FK indexes...
+  -> Building FK index on nation: (n_regionkey)
+  -> Building FK index on supplier: (s_nationkey)
+  -> Building FK index on customer: (c_nationkey)
+  -> Building FK index on partsupp: (ps_partkey)
+  -> Building FK index on partsupp: (ps_suppkey)
+  -> Building FK index on orders: (o_custkey)
+  -> Building FK index on lineitem: (l_orderkey)
+  -> Building FK index on lineitem: (l_partkey, l_suppkey)
+
+Done. PK + FK indexes created.
