@@ -16,6 +16,7 @@ It is designed to evaluate the performance impact of different Row-Level Securit
 | 1 | Indexed RLS | Baseline — policy-coverage indexes + FK indexes + **RLS implementation selected via `--rls-type`** |
 | 2 | Pure Native RLS | PK indexes + FK indexes + **RLS implementation selected via `--rls-type`** (no policy-coverage indexes) |
 | 3 | Secure Views | PK indexes + FK indexes + filtered views instead of RLS (**ignores `--rls-type`**) |
+| 4 | Query Rewrite | PK indexes + FK indexes + pre-rewritten queries with security predicates inlined (no RLS, no views) |
 
 ---
 
@@ -31,7 +32,7 @@ For phases **1** and **2**, you can choose how RLS is applied:
   - RLS policies use a standard `USING (...)` predicate built as a membership check against a predicate derived from the policy query.
 
 > **Important:** `--rls-type` is only valid when `--phase` includes **`1`** and/or **`2`**, or **`all`**.
-> Phase **3** uses secure views and does not use RLS.
+> Phase **3** uses secure views and Phase **4** uses query rewrite — neither uses RLS.
 
 ---
 
@@ -84,7 +85,7 @@ python experiment_runner.py <mapping_file> \
   Path to `experiment_mapping.json`
 
 - `--phase` (optional)
-  Phases to run: `1`, `2`, `3`, or `all` (default: `all`)
+  Phases to run: `1`, `2`, `3`, `4`, or `all` (default: `all`)
 
 - `--rls-type` (optional)
   RLS implementation(s) for phases **1/2 only**: `s` or `n` (default: `s`)
@@ -96,7 +97,7 @@ python experiment_runner.py <mapping_file> \
 
 - Use `--rls-type s` for **Security-Definer RLS**
 - Use `--rls-type n` for **Standard RLS predicate**
-- If you run **only** `--phase 3`, do **not** pass `--rls-type`
+- If you run **only** `--phase 3` or `--phase 4`, do **not** pass `--rls-type`
 
 > If your current `main()` selects a single `fn` (as in the provided script), then only the **first** value is used if multiple are provided (e.g., `--rls-type s n`). Prefer passing a single value.
 
@@ -134,13 +135,26 @@ Run Phase 2 and 3 (Phase 2 uses chosen RLS type, Phase 3 uses views):
 python experiment_runner.py experiment_mapping.json --phase 2 3 --rls-type s
 ```
 
+Run only Phase 4 (Query Rewrite — no RLS, no views, predicates inlined in SQL):
+
+```bash
+python experiment_runner.py experiment_mapping.json --phase 4
+```
+
+Run Phase 3 and 4 together:
+
+```bash
+python experiment_runner.py experiment_mapping.json --phase 3 4
+```
+
 Run all phases with a custom output filename:
 
 ```bash
 python experiment_runner.py experiment_mapping.json --phase all --output my_results.png
 ```
-View Queries Section:
-Requires a new algorithm to write it. 
+### Phase 4 — Query Rewrite
+
+Loads pre-rewritten queries from `queries/all_queries_tiered_predicates_lithe.sql` where security predicates are directly inlined into the SQL. No RLS or views are used — the optimizer sees the full query including security filters.
 
 #compare_rls_vs_manual.py
 
@@ -192,6 +206,14 @@ REWRITTEN QUERIES: All 22 TPC-H queries with policy-protected table names replac
 4. Rewrites each TPC-H query to reference `{table}_view` instead of base table
 5. Runs queries with the same dynamic timeout as Phase 2
 
+### Phase 4 — Query Rewrite
+
+1. Resets database (and optionally restarts PostgreSQL, if enabled)
+2. Builds only **PK indexes** and **FK indexes** (no RLS, no views)
+3. Loads pre-rewritten queries from `queries/all_queries_tiered_predicates_lithe.sql` (security predicates inlined into SQL)
+4. Runs queries as `tpch_tester` with the same dynamic timeout and session GUCs as other phases
+5. EXPLAIN ANALYZE plans saved to `RLS-results/phase4/`
+
 ---
 
 ## Output
@@ -200,6 +222,7 @@ REWRITTEN QUERIES: All 22 TPC-H queries with policy-protected table names replac
 - Saves a bar chart comparing:
   - Phase 2 slowdown ratio vs Phase 1 baseline
   - Phase 3 slowdown ratio vs Phase 1 baseline
+  - Phase 4 slowdown ratio vs Phase 1 baseline
 
 Default output file: `postgres_exp2_clean_4P.png`
 
@@ -271,8 +294,8 @@ Saved as postgres_exp2_clean_4P.png
 | Condition | Timeout used |
 |---|---|
 | Phase 1 | Hard 900s per query |
-| Phase 2 / 3 — baseline under 900s | `10 × baseline_time` |
-| Phase 2 / 3 — baseline timed out | Hard 900s |
+| Phase 2 / 3 / 4 — baseline under 900s | `10 × baseline_time` |
+| Phase 2 / 3 / 4 — baseline timed out | Hard 900s |
 
 Timed-out queries are recorded as `900.0s` for ratio calculations in the plot.
 
