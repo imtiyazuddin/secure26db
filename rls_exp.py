@@ -490,11 +490,30 @@ def rewrite_for_views(sql):
     return modified_sql
 
 
+REWRITE_QUERIES_FILE = "queries/all_queries_tiered_predicates_lithe.sql"
+
+def load_queries_from_file(filepath: str) -> dict:
+    """Parse a SQL file with --Q1 / -- Q1 markers into {str(n): sql} dict."""
+    with open(filepath, 'r') as f:
+        content = f.read()
+    sql_map = {}
+    parts = re.split(r'(?=--\s*Q\d+)', content)
+    for part in parts:
+        m = re.match(r'--\s*Q(\d+)', part.strip())
+        if m:
+            qnum = m.group(1)
+            sql = re.sub(r'^--\s*Q\d+\s*', '', part.strip(), count=1).strip().rstrip(';')
+            if sql:
+                sql_map[qnum] = sql
+    return sql_map
+
+
 # --- EXECUTION ---
 
 baseline_times = {}
 exp1_times = {}
 exp2_times = {}
+exp3_times = {}
 
 
 
@@ -503,6 +522,7 @@ ensure_dir('RLS-results')
 ensure_dir(os.path.join('RLS-results','phase1'))
 ensure_dir(os.path.join('RLS-results','phase2'))
 ensure_dir(os.path.join('RLS-results','phase3'))
+ensure_dir(os.path.join('RLS-results','phase4'))
 
 print("\n--- PHASE 1: Running Baseline (Indexed RLS) ---", flush=True)
 reset_database()
@@ -612,6 +632,44 @@ for i in range(1, 23):
     else:
         print(f"  [Q{q_id}] Secure Views Avg: {avg_time:.4f}s\n", flush=True)
 
+print("\n--- PHASE 4: Running Exp 3 (Query Rewrite) ---", flush=True)
+reset_database()
+
+restart_postgres()
+wait_until_ready()
+
+# PK + FK indexes only, no RLS, no views
+build_pk_indexes()
+build_fk_indexes()
+
+rewrite_queries = load_queries_from_file(REWRITE_QUERIES_FILE)
+print(f"  Loaded {len(rewrite_queries)} rewritten queries from {REWRITE_QUERIES_FILE}", flush=True)
+
+for i in range(1, 23):
+    q_id = str(i)
+    if q_id not in rewrite_queries or q_id not in baseline_times:
+        continue
+
+    print(f"  -> [DEBUG] Firing Q{q_id} (Query Rewrite)", flush=True)
+
+    rewrite_sql = rewrite_queries[q_id]
+    # --- DYNAMIC TIMEOUT LOGIC ---
+    if baseline_times[q_id] >= 900.0:
+        dyn_timeout_ms = 900000
+    else:
+        dyn_timeout_ms = int(baseline_times[q_id] * 10 * 1000)
+
+    avg_time, _metrics = run_phase_query_explain(rewrite_sql, q_id, 'phase4', 'query_rewrite', timeout_ms=dyn_timeout_ms)
+
+    exp3_times[q_id] = avg_time
+
+    if avg_time is None:
+        print(f"  [Q{q_id}] Query Rewrite Avg: ERR\n", flush=True)
+    elif avg_time == float('inf'):
+        print(f"  [Q{q_id}] Query Rewrite Avg: TIMEOUT\n", flush=True)
+    else:
+        print(f"  [Q{q_id}] Query Rewrite Avg: {avg_time:.4f}s\n", flush=True)
+
 cursor_tester.close()
 conn_tester.close()
 cursor_admin.close()
@@ -622,13 +680,15 @@ if baseline_times:
     queries = [f"Q{q}" for q in baseline_times.keys()]
     exp1_ratios = [min(15.0, exp1_times[q]/baseline_times[q]) if exp1_times.get(q) is not None else 0 for q in baseline_times.keys()]
     exp2_ratios = [min(15.0, exp2_times[q]/baseline_times[q]) if exp2_times.get(q) is not None else 0 for q in baseline_times.keys()]
+    exp3_ratios = [min(15.0, exp3_times[q]/baseline_times[q]) if exp3_times.get(q) is not None else 0 for q in baseline_times.keys()]
 
     x = np.arange(len(queries))
-    width = 0.35
+    width = 0.25
 
     fig, ax = plt.subplots(figsize=(20, 8))
-    ax.bar(x - width/2, exp1_ratios, width, label='Exp 1 (Pure RLS)', color='crimson', edgecolor='black')
-    ax.bar(x + width/2, exp2_ratios, width, label='Exp 2 (Secure Views)', color='royalblue', edgecolor='black')
+    ax.bar(x - width, exp1_ratios, width, label='Exp 1 (Pure RLS)', color='crimson', edgecolor='black')
+    ax.bar(x, exp2_ratios, width, label='Exp 2 (Secure Views)', color='royalblue', edgecolor='black')
+    ax.bar(x + width, exp3_ratios, width, label='Exp 3 (Query Rewrite)', color='forestgreen', edgecolor='black')
 
     ax.axhline(1, color='black', linestyle='--', linewidth=2, label='Baseline (Indexed RLS = 1.0x)')
     ax.set_ylabel('Execution Slowdown Factor')
