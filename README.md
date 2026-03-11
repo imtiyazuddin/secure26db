@@ -139,10 +139,30 @@ Run all phases with a custom output filename:
 ```bash
 python experiment_runner.py experiment_mapping.json --phase all --output my_results.png
 ```
-# to display view queries 
-''' bash 
+View Queries Section:
+Requires a new algorithm to write it. 
+
+#compare_rls_vs_manual.py
+
+Compares query result sets across three enforcement methods for TPC-H queries (Q1–Q22):
+
+RLS: Runs each query as rls_user with PostgreSQL Row Level Security policies enabled.
+Manual: Runs the same query with security predicates manually injected into the SQL (from all_queries_with_tiered_predicates.sql).
+View: Creates secure views from vew_queries_log.txt and runs the view-rewritten queries.
+Reports [MATCH] or [MISMATCH] for each pair and outputs a summary. Supports --query N to run a single query and --skip N to exclude specific queries.
+
+#vew_queries_log.py
+Generates view-based query rewrites from a tiered policy mapping (experiment_mapping_tiered.json). Uses a hierarchical algorithm where bypass views for higher-tier tables reference rls_bypass_view_* of lower-tier tables (e.g., partsupp's bypass view references rls_bypass_view_supplier instead of supplier directly). Run with --print-only to output view definitions and rewritten queries without connecting to the database.
+
+ bash 
 python vew_queries_log.py experiment_mapping_tiered.json --print-only
-'''
+
+#vew_queries_log.py
+Output of vew_queries_log.py --print-only. Contains two sections:
+
+VIEW DEFINITIONS: CREATE OR REPLACE VIEW statements for bypass views and _view wrappers for each policy-protected table, ordered by tier.
+REWRITTEN QUERIES: All 22 TPC-H queries with policy-protected table names replaced by their _view equivalents (e.g., lineitem → lineitem_view).
+
 ---
 
 ## What the Script Does
