@@ -5,7 +5,7 @@
 
 SELECT s.*
 FROM supplier s
-WHERE s.s_acctbal > 0
+WHERE s.s_acctbal > 7999
   AND EXISTS (
     SELECT 1
     FROM nation n, region r
@@ -23,3 +23,4 @@ WHERE s.s_acctbal > 0
 --       AND n.n_regionkey = r.r_regionkey
 --       AND r.r_name = 'EUROPE'
 --   )
+
