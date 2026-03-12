@@ -37,8 +37,8 @@
                 "nation",
                 "region"
             ],
-            "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA');",
-            "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA');"
+            "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+            "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA')"
         },
         "supplier": {
             "tier": 1,
@@ -48,7 +48,7 @@
                 "nation",
                 "region"
             ],
-            "raw_sql": "SELECT s.*\n FROM supplier s\n WHERE s.s_acctbal > 7999\n AND EXISTS (\n SELECT 1\n FROM nation n, region r WHERE n.n_nationkey = s.s_nationkey AND n.n_regionkey = r.r_regionkey AND r.r_name = 'EUROPE');",
+            "raw_sql": "SELECT s.*\n FROM supplier s\n WHERE s.s_acctbal > 7999\n AND EXISTS (\n SELECT 1\n FROM nation n, region r WHERE n.n_nationkey = s.s_nationkey AND n.n_regionkey = r.r_regionkey AND r.r_name = 'EUROPE')",
             "predicate": "s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
         },
         "partsupp": {
@@ -62,7 +62,7 @@
                 "supplier (p2)"
             ],
             "raw_sql": "SELECT\n\tps.ps_partkey,\n\tps.ps_suppkey,\n\tps.ps_availqty,\n\tps.ps_supplycost,\n\tps.ps_comment\nFROM partsupp ps\nJOIN supplier s\n\tON s.s_suppkey = ps.ps_suppkey\nWHERE ps.ps_availqty > 9000\nGROUP BY\n\tps.ps_partkey,\n\tps.ps_suppkey,\n\tps.ps_availqty,\n\tps.ps_supplycost,\n\tps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1",
-            "predicate": "ps.ps_availqty > 9000\n\tAND EXISTS (\n\t\tSELECT 1\n\t\tFROM supplier s\n\t\tWHERE s.s_suppkey = ps.ps_suppkey\n\t\t\tAND s.s_acctbal > 7999\n\t);"
+            "predicate": "ps.ps_availqty > 9000\n\tAND EXISTS (\n\t\tSELECT 1\n\t\tFROM supplier s\n\t\tWHERE s.s_suppkey = ps.ps_suppkey\n\t\t\tAND s.s_acctbal > 7999\n\t)"
         },
         "lineitem": {
             "tier": 3,
@@ -112,7 +112,7 @@
                 "partsupp": {
                     "file": "p4_tiered.sql",
                     "raw_sql": "SELECT\n\tps.ps_partkey,\n\tps.ps_suppkey,\n\tps.ps_availqty,\n\tps.ps_supplycost,\n\tps.ps_comment\nFROM partsupp ps\nJOIN supplier s\n\tON s.s_suppkey = ps.ps_suppkey\nWHERE ps.ps_availqty > 9000\nGROUP BY\n\tps.ps_partkey,\n\tps.ps_suppkey,\n\tps.ps_availqty,\n\tps.ps_supplycost,\n\tps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1",
-                    "predicate": "ps.ps_availqty > 9000\n\tAND EXISTS (\n\t\tSELECT 1\n\t\tFROM supplier s\n\t\tWHERE s.s_suppkey = ps.ps_suppkey\n\t\t\tAND s.s_acctbal > 7999\n\t);"
+                    "predicate": "ps.ps_availqty > 9000\n\tAND EXISTS (\n\t\tSELECT 1\n\t\tFROM supplier s\n\t\tWHERE s.s_suppkey = ps.ps_suppkey\n\t\t\tAND s.s_acctbal > 7999\n\t)"
                 },
                 "supplier": {
                     "file": "p2_tiered.sql",
@@ -131,8 +131,8 @@
             "applied_policies": {
                 "customer": {
                     "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA');",
-                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA');"
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA')"
                 },
                 "lineitem": {
                     "file": "p3_tiered.sql",
@@ -168,8 +168,8 @@
             "applied_policies": {
                 "customer": {
                     "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA');",
-                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA');"
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA')"
                 },
                 "supplier": {
                     "file": "p2_tiered.sql",
@@ -208,8 +208,8 @@
             "applied_policies": {
                 "customer": {
                     "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA');",
-                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA');"
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA')"
                 },
                 "supplier": {
                     "file": "p2_tiered.sql",
@@ -237,8 +237,8 @@
             "applied_policies": {
                 "customer": {
                     "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA');",
-                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA');"
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA')"
                 },
                 "supplier": {
                     "file": "p2_tiered.sql",
@@ -271,7 +271,7 @@
                 "partsupp": {
                     "file": "p4_tiered.sql",
                     "raw_sql": "SELECT\n\tps.ps_partkey,\n\tps.ps_suppkey,\n\tps.ps_availqty,\n\tps.ps_supplycost,\n\tps.ps_comment\nFROM partsupp ps\nJOIN supplier s\n\tON s.s_suppkey = ps.ps_suppkey\nWHERE ps.ps_availqty > 9000\nGROUP BY\n\tps.ps_partkey,\n\tps.ps_suppkey,\n\tps.ps_availqty,\n\tps.ps_supplycost,\n\tps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1",
-                    "predicate": "ps.ps_availqty > 9000\n\tAND EXISTS (\n\t\tSELECT 1\n\t\tFROM supplier s\n\t\tWHERE s.s_suppkey = ps.ps_suppkey\n\t\t\tAND s.s_acctbal > 7999\n\t);"
+                    "predicate": "ps.ps_availqty > 9000\n\tAND EXISTS (\n\t\tSELECT 1\n\t\tFROM supplier s\n\t\tWHERE s.s_suppkey = ps.ps_suppkey\n\t\t\tAND s.s_acctbal > 7999\n\t)"
                 },
                 "lineitem": {
                     "file": "p3_tiered.sql",
@@ -291,8 +291,8 @@
             "applied_policies": {
                 "customer": {
                     "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA');",
-                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA');"
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA')"
                 },
                 "lineitem": {
                     "file": "p3_tiered.sql",
@@ -312,7 +312,7 @@
                 "partsupp": {
                     "file": "p4_tiered.sql",
                     "raw_sql": "SELECT\n\tps.ps_partkey,\n\tps.ps_suppkey,\n\tps.ps_availqty,\n\tps.ps_supplycost,\n\tps.ps_comment\nFROM partsupp ps\nJOIN supplier s\n\tON s.s_suppkey = ps.ps_suppkey\nWHERE ps.ps_availqty > 9000\nGROUP BY\n\tps.ps_partkey,\n\tps.ps_suppkey,\n\tps.ps_availqty,\n\tps.ps_supplycost,\n\tps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1",
-                    "predicate": "ps.ps_availqty > 9000\n\tAND EXISTS (\n\t\tSELECT 1\n\t\tFROM supplier s\n\t\tWHERE s.s_suppkey = ps.ps_suppkey\n\t\t\tAND s.s_acctbal > 7999\n\t);"
+                    "predicate": "ps.ps_availqty > 9000\n\tAND EXISTS (\n\t\tSELECT 1\n\t\tFROM supplier s\n\t\tWHERE s.s_suppkey = ps.ps_suppkey\n\t\t\tAND s.s_acctbal > 7999\n\t)"
                 },
                 "supplier": {
                     "file": "p2_tiered.sql",
@@ -344,8 +344,8 @@
             "applied_policies": {
                 "customer": {
                     "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA');",
-                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA');"
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA')"
                 }
             }
         },
@@ -393,7 +393,7 @@
                 "partsupp": {
                     "file": "p4_tiered.sql",
                     "raw_sql": "SELECT\n\tps.ps_partkey,\n\tps.ps_suppkey,\n\tps.ps_availqty,\n\tps.ps_supplycost,\n\tps.ps_comment\nFROM partsupp ps\nJOIN supplier s\n\tON s.s_suppkey = ps.ps_suppkey\nWHERE ps.ps_availqty > 9000\nGROUP BY\n\tps.ps_partkey,\n\tps.ps_suppkey,\n\tps.ps_availqty,\n\tps.ps_supplycost,\n\tps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1",
-                    "predicate": "ps.ps_availqty > 9000\n\tAND EXISTS (\n\t\tSELECT 1\n\t\tFROM supplier s\n\t\tWHERE s.s_suppkey = ps.ps_suppkey\n\t\t\tAND s.s_acctbal > 7999\n\t);"
+                    "predicate": "ps.ps_availqty > 9000\n\tAND EXISTS (\n\t\tSELECT 1\n\t\tFROM supplier s\n\t\tWHERE s.s_suppkey = ps.ps_suppkey\n\t\t\tAND s.s_acctbal > 7999\n\t)"
                 },
                 "supplier": {
                     "file": "p2_tiered.sql",
@@ -426,8 +426,8 @@
             "applied_policies": {
                 "customer": {
                     "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA');",
-                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA');"
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n   AND\n   n.n_regionkey = r.r_regionkey\n AND r.r_name IN ('EUROPE', 'AMERICA')"
                 },
                 "lineitem": {
                     "file": "p3_tiered.sql",
@@ -468,7 +468,7 @@
                 "partsupp": {
                     "file": "p4_tiered.sql",
                     "raw_sql": "SELECT\n\tps.ps_partkey,\n\tps.ps_suppkey,\n\tps.ps_availqty,\n\tps.ps_supplycost,\n\tps.ps_comment\nFROM partsupp ps\nJOIN supplier s\n\tON s.s_suppkey = ps.ps_suppkey\nWHERE ps.ps_availqty > 9000\nGROUP BY\n\tps.ps_partkey,\n\tps.ps_suppkey,\n\tps.ps_availqty,\n\tps.ps_supplycost,\n\tps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1",
-                    "predicate": "ps.ps_availqty > 9000\n\tAND EXISTS (\n\t\tSELECT 1\n\t\tFROM supplier s\n\t\tWHERE s.s_suppkey = ps.ps_suppkey\n\t\t\tAND s.s_acctbal > 7999\n\t);"
+                    "predicate": "ps.ps_availqty > 9000\n\tAND EXISTS (\n\t\tSELECT 1\n\t\tFROM supplier s\n\t\tWHERE s.s_suppkey = ps.ps_suppkey\n\t\t\tAND s.s_acctbal > 7999\n\t)"
                 },
                 "lineitem": {
                     "file": "p3_tiered.sql",
@@ -507,11 +507,10 @@
             "applied_policies": {
                 "customer": {
                     "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA');",
-                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA');"
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')"
                 }
             }
         }
     }
 }
-
