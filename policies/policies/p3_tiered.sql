@@ -17,7 +17,7 @@ WHERE EXISTS (
     FROM partsupp ps
     WHERE ps.ps_partkey = l.l_partkey
       AND ps.ps_suppkey = l.l_suppkey
-      AND ps.ps_availqty > 0
+      AND ps.ps_availqty > 9000
   );
 
 -- PREDICATE (for manual injection):
@@ -34,3 +34,4 @@ WHERE EXISTS (
 --       AND ps.ps_suppkey = l.l_suppkey
 --       AND ps.ps_availqty > 0
 --   )
+
