@@ -1,89 +1,34 @@
 {
     "metadata": {
-        "description": "TPC-H Query to Policy Mapping - TIERED ARCHITECTURE (No Cycles)",
-        "architecture": {
-            "tier_0": [
-                "nation",
-                "region"
-            ],
-            "tier_1": [
-                "customer",
-                "supplier",
-                "part"
-            ],
-            "tier_2": [
-                "orders",
-                "partsupp"
-            ],
-            "tier_3": [
-                "lineitem"
-            ]
-        },
-        "rule": "Policy on tier N can only reference tables from tier < N",
-        "max_depth": 3,
+        "description": "Universal TPC-H Query to Policy Mapping",
         "policies_loaded": [
-            "customer",
+            "lineitem",
             "supplier",
-            "partsupp",
-            "lineitem"
+            "customer",
+            "partsupp"
         ]
     },
     "policies": {
-        "customer": {
-            "tier": 1,
-            "file": "p1_tiered.sql",
-            "description": "Customers from EUROPE or AMERICA regions with positive balance",
-            "references": [
-                "nation",
-                "region"
-            ],
-            "raw_sql": "SELECT c.*\nFROM customer c\nWHERE c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )",
-            "predicate": "c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )"
+        "lineitem": {
+            "file": "p3_tiered.sql",
+            "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+            "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
         },
         "supplier": {
-            "tier": 1,
             "file": "p2_tiered.sql",
-            "description": "Suppliers from EUROPE with positive balance",
-            "references": [
-                "nation",
-                "region"
-            ],
-            "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
-            "predicate": "s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
+            "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
+            "predicate": "s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
+        },
+        "customer": {
+            "file": "p1_tiered.sql",
+            "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+            "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')"
         },
         "partsupp": {
-            "tier": 2,
             "file": "p4_tiered.sql",
-            "description": "Partsupp from suppliers with positive balance and sufficient stock",
-            "references": [
-                "supplier"
-            ],
-            "references_with_policies": [
-                "supplier (p2)"
-            ],
-            "raw_sql": "SELECT ps.*\nFROM partsupp ps\nWHERE ps.ps_availqty > 100\n  AND EXISTS (\n    SELECT 1\n    FROM supplier s\n    WHERE s.s_suppkey = ps.ps_suppkey\n      AND s.s_acctbal > 0\n  )",
-            "predicate": "ps.ps_availqty > 100\n  AND EXISTS (\n    SELECT 1\n    FROM supplier s\n    WHERE s.s_suppkey = ps.ps_suppkey\n      AND s.s_acctbal > 0\n  )"
-        },
-        "lineitem": {
-            "tier": 3,
-            "file": "p3_tiered.sql",
-            "description": "Lineitem from high-priority orders with available partsupp",
-            "references": [
-                "orders",
-                "partsupp"
-            ],
-            "references_with_policies": [
-                "partsupp (p4)"
-            ],
-            "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-            "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+            "raw_sql": "SELECT\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nFROM partsupp ps\nJOIN supplier s\n    ON s.s_suppkey = ps.ps_suppkey\nWHERE ps.ps_availqty > 9000\nGROUP BY\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1",
+            "predicate": "ps.ps_availqty > 9000\nGROUP BY\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1"
         }
-    },
-    "dependency_chains": {
-        "customer": "customer -> nation/region (STOPS at Tier 0)",
-        "supplier": "supplier -> nation/region (STOPS at Tier 0)",
-        "partsupp": "partsupp -> supplier(p2) -> nation/region (STOPS at Tier 0)",
-        "lineitem": "lineitem -> orders (no policy) + partsupp(p4) -> supplier(p2) -> nation/region (STOPS at Tier 0)"
     },
     "queries": {
         "1": {
@@ -94,92 +39,92 @@
             "applied_policies": {
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
                 }
             }
         },
         "2": {
             "sql": "select\n        s_acctbal,\n        s_name,\n        n_name,\n        p_partkey,\n        p_mfgr,\n        s_address,\n        s_phone,\n        s_comment\nfrom\n        part,\n        supplier,\n        partsupp,\n        nation,\n        region\nwhere\n        p_partkey = ps_partkey\n        and s_suppkey = ps_suppkey\n        and p_size = 15\n        and p_type like '%BRASS'\n        and s_nationkey = n_nationkey\n        and n_regionkey = r_regionkey\n        and r_name = 'EUROPE'\n        and ps_supplycost = (\n                select\n                        min(ps_supplycost)\n                from\n                        partsupp,\n                        supplier,\n                        nation,\n                        region\n                where\n                        p_partkey = ps_partkey\n                        and s_suppkey = ps_suppkey\n                        and s_nationkey = n_nationkey\n                        and n_regionkey = r_regionkey\n                        and r_name = 'EUROPE'\n        )\norder by\n        s_acctbal desc,\n        n_name,\n        s_name,\n        p_partkey limit 100",
             "tables_used": [
-                "partsupp",
+                "supplier",
                 "part",
                 "region",
-                "supplier",
-                "nation"
+                "nation",
+                "partsupp"
             ],
             "applied_policies": {
-                "partsupp": {
-                    "file": "p4_tiered.sql",
-                    "raw_sql": "SELECT ps.*\nFROM partsupp ps\nWHERE ps.ps_availqty > 100\n  AND EXISTS (\n    SELECT 1\n    FROM supplier s\n    WHERE s.s_suppkey = ps.ps_suppkey\n      AND s.s_acctbal > 0\n  )",
-                    "predicate": "ps.ps_availqty > 100\n  AND EXISTS (\n    SELECT 1\n    FROM supplier s\n    WHERE s.s_suppkey = ps.ps_suppkey\n      AND s.s_acctbal > 0\n  )"
-                },
                 "supplier": {
                     "file": "p2_tiered.sql",
-                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
-                    "predicate": "s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
+                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
+                    "predicate": "s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
+                },
+                "partsupp": {
+                    "file": "p4_tiered.sql",
+                    "raw_sql": "SELECT\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nFROM partsupp ps\nJOIN supplier s\n    ON s.s_suppkey = ps.ps_suppkey\nWHERE ps.ps_availqty > 9000\nGROUP BY\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1",
+                    "predicate": "ps.ps_availqty > 9000\nGROUP BY\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1"
                 }
             }
         },
         "3": {
             "sql": "select\n        l_orderkey,\n        sum(l_extendedprice * (1 - l_discount)) as revenue,\n        o_orderdate,\n        o_shippriority\nfrom\n        customer,\n        orders,\n        lineitem\nwhere\n        c_mktsegment = 'FURNITURE'\n        and c_custkey = o_custkey\n        and l_orderkey = o_orderkey\n        and o_orderdate < date '1995-01-01'\n        and l_shipdate > date '1995-01-01'\ngroup by\n        l_orderkey,\n        o_orderdate,\n        o_shippriority\norder by\n        revenue desc,\n        o_orderdate",
             "tables_used": [
-                "customer",
+                "orders",
                 "lineitem",
-                "orders"
+                "customer"
             ],
             "applied_policies": {
-                "customer": {
-                    "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c\nWHERE c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )",
-                    "predicate": "c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )"
-                },
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
+                },
+                "customer": {
+                    "file": "p1_tiered.sql",
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')"
                 }
             }
         },
         "4": {
             "sql": "select\n        o_orderpriority,\n        count(*) as order_count\nfrom\n        orders\nwhere\n        o_orderdate >= date '1994-01-01'\n        and o_orderdate < date '1994-01-01' + interval '3' month\n        and exists (\n                select\n                        *\n                from\n                        lineitem\n                where\n                        l_orderkey = o_orderkey\n                        and l_commitdate < l_receiptdate\n        )\ngroup by\n        o_orderpriority\norder by\n        o_orderpriority",
             "tables_used": [
-                "lineitem",
-                "orders"
+                "orders",
+                "lineitem"
             ],
             "applied_policies": {
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
                 }
             }
         },
         "5": {
             "sql": "select\n        n_name,\n        sum(l_extendedprice * (1 - l_discount)) as revenue\nfrom\n        customer,\n        orders,\n        lineitem,\n        supplier,\n        nation,\n        region\nwhere\n        c_custkey = o_custkey\n        and l_orderkey = o_orderkey\n        and l_suppkey = s_suppkey\n        and c_nationkey = s_nationkey\n        and s_nationkey = n_nationkey\n        and n_regionkey = r_regionkey\n        and r_name = 'ASIA'\n        and o_orderdate >= date '1995-01-01'\n        and o_orderdate < date '1995-01-01' + interval '1' year\ngroup by\n        n_name\norder by\n        revenue desc",
             "tables_used": [
-                "orders",
-                "region",
                 "customer",
+                "orders",
                 "supplier",
-                "lineitem",
-                "nation"
+                "region",
+                "nation",
+                "lineitem"
             ],
             "applied_policies": {
                 "customer": {
                     "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c\nWHERE c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )",
-                    "predicate": "c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )"
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')"
                 },
                 "supplier": {
                     "file": "p2_tiered.sql",
-                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
-                    "predicate": "s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
+                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
+                    "predicate": "s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
                 },
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
                 }
             }
         },
@@ -191,92 +136,92 @@
             "applied_policies": {
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
                 }
             }
         },
         "7": {
             "sql": "select\n        supp_nation,\n        cust_nation,\n        l_year,\n        sum(volume) as revenue\nfrom\n        (\n                select\n                        n1.n_name as supp_nation,\n                        n2.n_name as cust_nation,\n                        extract(year from l_shipdate) as l_year,\n                        l_extendedprice * (1 - l_discount) as volume\n                from\n                        supplier,\n                        lineitem,\n                        orders,\n                        customer,\n                        nation n1,\n                        nation n2\n                where\n                        s_suppkey = l_suppkey\n                        and o_orderkey = l_orderkey\n                        and c_custkey = o_custkey\n                        and s_nationkey = n1.n_nationkey\n                        and c_nationkey = n2.n_nationkey\n                        and (\n                                (n1.n_name = 'GERMANY' and n2.n_name = 'FRANCE')\n                                or (n1.n_name = 'FRANCE' and n2.n_name = 'GERMANY')\n                        )\n                        and l_shipdate between date '1995-01-01' and date '1996-12-31'\n        ) as shipping\ngroup by\n        supp_nation,\n        cust_nation,\n        l_year\norder by\n        supp_nation,\n        cust_nation,\n        l_year",
             "tables_used": [
-                "orders",
                 "customer",
+                "orders",
                 "supplier",
-                "lineitem",
-                "nation"
+                "nation",
+                "lineitem"
             ],
             "applied_policies": {
                 "customer": {
                     "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c\nWHERE c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )",
-                    "predicate": "c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )"
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')"
                 },
                 "supplier": {
                     "file": "p2_tiered.sql",
-                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
-                    "predicate": "s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
+                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
+                    "predicate": "s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
                 },
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
                 }
             }
         },
         "8": {
             "sql": "select\n        o_year,\n        sum(case\n                when nation = 'INDIA' then volume\n                else 0\n        end) / sum(volume) as mkt_share\nfrom\n        (\n                select\n                        extract(year from o_orderdate) as o_year,\n                        l_extendedprice * (1 - l_discount) as volume,\n                        n2.n_name as nation\n                from\n                        part,\n                        supplier,\n                        lineitem,\n                        orders,\n                        customer,\n                        nation n1,\n                        nation n2,\n                        region\n                where\n                        p_partkey = l_partkey\n                        and s_suppkey = l_suppkey\n                        and l_orderkey = o_orderkey\n                        and o_custkey = c_custkey\n                        and c_nationkey = n1.n_nationkey\n                        and n1.n_regionkey = r_regionkey\n                        and r_name = 'ASIA'\n                        and s_nationkey = n2.n_nationkey\n                        and o_orderdate between date '1995-01-01' and date '1996-12-31'\n                        and p_type = 'ECONOMY ANODIZED STEEL'\n        ) as all_nations\ngroup by\n        o_year\norder by\n        o_year",
             "tables_used": [
-                "part",
-                "orders",
-                "region",
                 "customer",
+                "orders",
                 "supplier",
-                "lineitem",
-                "nation"
+                "part",
+                "region",
+                "nation",
+                "lineitem"
             ],
             "applied_policies": {
                 "customer": {
                     "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c\nWHERE c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )",
-                    "predicate": "c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )"
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')"
                 },
                 "supplier": {
                     "file": "p2_tiered.sql",
-                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
-                    "predicate": "s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
+                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
+                    "predicate": "s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
                 },
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
                 }
             }
         },
         "9": {
             "sql": "select\n        nation,\n        o_year,\n        sum(amount) as sum_profit\nfrom\n        (\n                select\n                        n_name as nation, p_name,\n                        extract(year from o_orderdate) as o_year,\n                        l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount\n                from\n                        part,\n                        supplier,\n                        lineitem,\n                        partsupp,\n                        orders,\n                        nation\n                where\n                        s_suppkey = l_suppkey\n                        and ps_suppkey = l_suppkey\n                        and ps_partkey = l_partkey\n                        and p_partkey = l_partkey\n                        and o_orderkey = l_orderkey\n                        and s_nationkey = n_nationkey\n                        and p_name like 'co%'\n        ) as profit\ngroup by\n        nation,\n        o_year\norder by\n        nation,\n        o_year desc",
             "tables_used": [
-                "part",
                 "orders",
-                "partsupp",
                 "supplier",
-                "lineitem",
-                "nation"
+                "part",
+                "partsupp",
+                "nation",
+                "lineitem"
             ],
             "applied_policies": {
                 "supplier": {
                     "file": "p2_tiered.sql",
-                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
-                    "predicate": "s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
+                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
+                    "predicate": "s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
                 },
                 "partsupp": {
                     "file": "p4_tiered.sql",
-                    "raw_sql": "SELECT ps.*\nFROM partsupp ps\nWHERE ps.ps_availqty > 100\n  AND EXISTS (\n    SELECT 1\n    FROM supplier s\n    WHERE s.s_suppkey = ps.ps_suppkey\n      AND s.s_acctbal > 0\n  )",
-                    "predicate": "ps.ps_availqty > 100\n  AND EXISTS (\n    SELECT 1\n    FROM supplier s\n    WHERE s.s_suppkey = ps.ps_suppkey\n      AND s.s_acctbal > 0\n  )"
+                    "raw_sql": "SELECT\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nFROM partsupp ps\nJOIN supplier s\n    ON s.s_suppkey = ps.ps_suppkey\nWHERE ps.ps_availqty > 9000\nGROUP BY\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1",
+                    "predicate": "ps.ps_availqty > 9000\nGROUP BY\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1"
                 },
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
                 }
             }
         },
@@ -284,54 +229,54 @@
             "sql": "select\n        c_custkey,\n        c_name,\n        sum(l_extendedprice * (1 - l_discount)) as revenue,\n        c_acctbal,\n        n_name,\n        c_address,\n        c_phone,\n        c_comment\nfrom\n        customer,\n        orders,\n        lineitem,\n        nation\nwhere\n        c_custkey = o_custkey\n        and l_orderkey = o_orderkey\n        and o_orderdate >= date '1995-01-01'\n        and o_orderdate < date '1995-01-01' + interval '3' month\n        and l_returnflag = 'R'\n        and c_nationkey = n_nationkey\ngroup by\n        c_custkey,\n        c_name,\n        c_acctbal,\n        c_phone,\n        n_name,\n        c_address,\n        c_comment\norder by\n        revenue desc",
             "tables_used": [
                 "orders",
-                "customer",
                 "lineitem",
-                "nation"
+                "nation",
+                "customer"
             ],
             "applied_policies": {
-                "customer": {
-                    "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c\nWHERE c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )",
-                    "predicate": "c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )"
-                },
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
+                },
+                "customer": {
+                    "file": "p1_tiered.sql",
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')"
                 }
             }
         },
         "11": {
             "sql": "SELECT\n    ps_partkey, n_name,\n    SUM(ps_supplycost * ps_availqty) AS total_value\nFROM\n    partsupp, supplier, nation \nwhere\n    ps_suppkey = s_suppkey\n        and s_nationkey = n_nationkey\n        and n_name = 'INDIA'\nGROUP BY\n    ps_partkey, n_name\nHAVING\n    SUM(ps_supplycost * ps_availqty) > (\n        SELECT SUM(ps_supplycost * ps_availqty) * 0.00001\n        FROM partsupp, supplier, nation WHERE \n        ps_suppkey = s_suppkey\n        and s_nationkey = n_nationkey\n        and n_name = 'INDIA'\n    )\nORDER BY\n    total_value DESC",
             "tables_used": [
-                "partsupp",
                 "supplier",
-                "nation"
+                "nation",
+                "partsupp"
             ],
             "applied_policies": {
-                "partsupp": {
-                    "file": "p4_tiered.sql",
-                    "raw_sql": "SELECT ps.*\nFROM partsupp ps\nWHERE ps.ps_availqty > 100\n  AND EXISTS (\n    SELECT 1\n    FROM supplier s\n    WHERE s.s_suppkey = ps.ps_suppkey\n      AND s.s_acctbal > 0\n  )",
-                    "predicate": "ps.ps_availqty > 100\n  AND EXISTS (\n    SELECT 1\n    FROM supplier s\n    WHERE s.s_suppkey = ps.ps_suppkey\n      AND s.s_acctbal > 0\n  )"
-                },
                 "supplier": {
                     "file": "p2_tiered.sql",
-                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
-                    "predicate": "s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
+                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
+                    "predicate": "s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
+                },
+                "partsupp": {
+                    "file": "p4_tiered.sql",
+                    "raw_sql": "SELECT\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nFROM partsupp ps\nJOIN supplier s\n    ON s.s_suppkey = ps.ps_suppkey\nWHERE ps.ps_availqty > 9000\nGROUP BY\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1",
+                    "predicate": "ps.ps_availqty > 9000\nGROUP BY\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1"
                 }
             }
         },
         "12": {
             "sql": "select\n        l_shipmode,\n        sum(case\n                when o_orderpriority = '1-URGENT'\n                        or o_orderpriority = '2-HIGH'\n                        then 1\n                else 0\n        end) as high_line_count,\n        sum(case\n                when o_orderpriority <> '1-URGENT'\n                        and o_orderpriority <> '2-HIGH'\n                        then 1\n                else 0\n        end) as low_line_count\nfrom\n        orders,\n        lineitem\nwhere\n        o_orderkey = l_orderkey\n        and l_shipmode = 'SHIP'\n        and l_commitdate < l_receiptdate\n        and l_shipdate < l_commitdate\n        and l_receiptdate >= date '1995-01-01'\n        and l_receiptdate < date '1995-01-01' + interval '1' year\ngroup by\n        l_shipmode\norder by\n        l_shipmode",
             "tables_used": [
-                "lineitem",
-                "orders"
+                "orders",
+                "lineitem"
             ],
             "applied_policies": {
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
                 }
             }
         },
@@ -344,8 +289,8 @@
             "applied_policies": {
                 "customer": {
                     "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c\nWHERE c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )",
-                    "predicate": "c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )"
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')"
                 }
             }
         },
@@ -358,8 +303,8 @@
             "applied_policies": {
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
                 }
             }
         },
@@ -372,33 +317,39 @@
             "applied_policies": {
                 "supplier": {
                     "file": "p2_tiered.sql",
-                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
-                    "predicate": "s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
+                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
+                    "predicate": "s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
                 },
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
                 }
             }
         },
         "16": {
             "sql": "select\n        p_brand,\n        p_type,\n        p_size,\n        count(distinct ps_suppkey) as supplier_cnt\nfrom\n        partsupp,\n        part\nwhere\n        p_partkey = ps_partkey\n        and p_brand <> 'Brand#23'\n    AND p_type NOT LIKE 'MEDIUM POLISHED%' \n        and p_size IN (1, 4, 7)\n        and ps_suppkey not in (\n                select\n                        s_suppkey\n                from\n                        supplier\n                where\n                        s_comment like '%Customer%Complaints%'\n        )\ngroup by\n        p_brand,\n        p_type,\n        p_size\norder by\n        supplier_cnt desc,\n        p_brand,\n        p_type,\n        p_size",
             "tables_used": [
+                "supplier",
                 "part",
                 "partsupp",
-                "supplier"
+                "customer"
             ],
             "applied_policies": {
-                "partsupp": {
-                    "file": "p4_tiered.sql",
-                    "raw_sql": "SELECT ps.*\nFROM partsupp ps\nWHERE ps.ps_availqty > 100\n  AND EXISTS (\n    SELECT 1\n    FROM supplier s\n    WHERE s.s_suppkey = ps.ps_suppkey\n      AND s.s_acctbal > 0\n  )",
-                    "predicate": "ps.ps_availqty > 100\n  AND EXISTS (\n    SELECT 1\n    FROM supplier s\n    WHERE s.s_suppkey = ps.ps_suppkey\n      AND s.s_acctbal > 0\n  )"
-                },
                 "supplier": {
                     "file": "p2_tiered.sql",
-                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
-                    "predicate": "s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
+                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
+                    "predicate": "s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
+                },
+                "partsupp": {
+                    "file": "p4_tiered.sql",
+                    "raw_sql": "SELECT\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nFROM partsupp ps\nJOIN supplier s\n    ON s.s_suppkey = ps.ps_suppkey\nWHERE ps.ps_availqty > 9000\nGROUP BY\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1",
+                    "predicate": "ps.ps_availqty > 9000\nGROUP BY\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1"
+                },
+                "customer": {
+                    "file": "p1_tiered.sql",
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')"
                 }
             }
         },
@@ -411,8 +362,8 @@
             "applied_policies": {
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
                 }
             }
         },
@@ -420,19 +371,19 @@
             "sql": "select\n        c_name,\n        c_custkey,\n        o_orderkey,\n        o_orderdate,\n        o_totalprice,\n        sum(l_quantity)\nfrom\n        customer,\n        orders,\n        lineitem\nwhere\n        o_orderkey in (\n                select\n                        l_orderkey\n                from\n                        lineitem\n                group by\n                        l_orderkey having\n                                sum(l_quantity) > 300\n        )\n        and c_custkey = o_custkey\n        and o_orderkey = l_orderkey\ngroup by\n        c_name,\n        c_custkey,\n        o_orderkey,\n        o_orderdate,\n        o_totalprice\norder by\n        o_totalprice desc,\n        o_orderdate",
             "tables_used": [
                 "orders",
-                "customer",
-                "lineitem"
+                "lineitem",
+                "customer"
             ],
             "applied_policies": {
-                "customer": {
-                    "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c\nWHERE c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )",
-                    "predicate": "c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )"
-                },
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
+                },
+                "customer": {
+                    "file": "p1_tiered.sql",
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')"
                 }
             }
         },
@@ -445,35 +396,35 @@
             "applied_policies": {
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
                 }
             }
         },
         "20": {
             "sql": "select\n        s_name,\n        s_address\nfrom\n        supplier,\n        nation\nwhere\n        s_suppkey in (\n                select\n                        ps_suppkey\n                from\n                        partsupp\n                where\n                        ps_partkey in (\n                                select\n                                        p_partkey\n                                from\n                                        part\n                                where\n                                        p_name like '%ivory%'\n                        )\n                        and ps_availqty > (\n                                select\n                                        0.5 * sum(l_quantity)\n                                from\n                                        lineitem\n                                where\n                                        l_partkey = ps_partkey\n                                        and l_suppkey = ps_suppkey\n                                        and l_shipdate >= date '1995-01-01'\n                                        and l_shipdate < date '1995-01-01' + interval '1' year\n                        )\n        )\n        and s_nationkey = n_nationkey\n        and n_name = 'FRANCE'\norder by\n        s_name",
             "tables_used": [
-                "partsupp",
-                "part",
                 "supplier",
-                "lineitem",
-                "nation"
+                "part",
+                "nation",
+                "partsupp",
+                "lineitem"
             ],
             "applied_policies": {
                 "supplier": {
                     "file": "p2_tiered.sql",
-                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
-                    "predicate": "s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
+                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
+                    "predicate": "s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
                 },
                 "partsupp": {
                     "file": "p4_tiered.sql",
-                    "raw_sql": "SELECT ps.*\nFROM partsupp ps\nWHERE ps.ps_availqty > 100\n  AND EXISTS (\n    SELECT 1\n    FROM supplier s\n    WHERE s.s_suppkey = ps.ps_suppkey\n      AND s.s_acctbal > 0\n  )",
-                    "predicate": "ps.ps_availqty > 100\n  AND EXISTS (\n    SELECT 1\n    FROM supplier s\n    WHERE s.s_suppkey = ps.ps_suppkey\n      AND s.s_acctbal > 0\n  )"
+                    "raw_sql": "SELECT\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nFROM partsupp ps\nJOIN supplier s\n    ON s.s_suppkey = ps.ps_suppkey\nWHERE ps.ps_availqty > 9000\nGROUP BY\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1",
+                    "predicate": "ps.ps_availqty > 9000\nGROUP BY\n    ps.ps_partkey,\n    ps.ps_suppkey,\n    ps.ps_availqty,\n    ps.ps_supplycost,\n    ps.ps_comment\nHAVING MAX(CASE WHEN s.s_acctbal > 7999 THEN 1 ELSE 0 END) = 1"
                 },
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
                 }
             }
         },
@@ -481,20 +432,20 @@
             "sql": "select\n        s_name,\n        count(*) as numwait\nfrom\n        supplier,\n        lineitem l1,\n        orders,\n        nation\nwhere\n        s_suppkey = l1.l_suppkey\n        and o_orderkey = l1.l_orderkey\n        and o_orderstatus = 'F'\n        and l1.l_receiptdate > l1.l_commitdate\n        and exists (\n                select\n                        *\n                from\n                        lineitem l2\n                where\n                        l2.l_orderkey = l1.l_orderkey\n                        and l2.l_suppkey <> l1.l_suppkey\n        )\n        and not exists (\n                select\n                        *\n                from\n                        lineitem l3\n                where\n                        l3.l_orderkey = l1.l_orderkey\n                        and l3.l_suppkey <> l1.l_suppkey\n                        and l3.l_receiptdate > l3.l_commitdate\n        )\n        and s_nationkey = n_nationkey\n        and n_name = 'ARGENTINA'\ngroup by\n        s_name\norder by\n        numwait desc,\n        s_name",
             "tables_used": [
                 "orders",
-                "supplier",
                 "lineitem",
-                "nation"
+                "nation",
+                "supplier"
             ],
             "applied_policies": {
-                "supplier": {
-                    "file": "p2_tiered.sql",
-                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
-                    "predicate": "s.s_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
-                },
                 "lineitem": {
                     "file": "p3_tiered.sql",
-                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )",
-                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 0\n  )"
+                    "raw_sql": "SELECT l.*\nFROM lineitem l\nWHERE EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )",
+                    "predicate": "EXISTS (\n    SELECT 1\n    FROM orders o\n    WHERE o.o_orderkey = l.l_orderkey\n      AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')\n  )\n  AND NOT EXISTS (\n    SELECT 1\n    FROM partsupp ps\n    WHERE ps.ps_partkey = l.l_partkey\n      AND ps.ps_suppkey = l.l_suppkey\n      AND ps.ps_availqty > 9000\n  )"
+                },
+                "supplier": {
+                    "file": "p2_tiered.sql",
+                    "raw_sql": "SELECT s.*\nFROM supplier s\nWHERE s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )",
+                    "predicate": "s.s_acctbal > 7999\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = s.s_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name = 'EUROPE'\n  )"
                 }
             }
         },
@@ -507,11 +458,10 @@
             "applied_policies": {
                 "customer": {
                     "file": "p1_tiered.sql",
-                    "raw_sql": "SELECT c.*\nFROM customer c\nWHERE c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )",
-                    "predicate": "c.c_acctbal > 0\n  AND EXISTS (\n    SELECT 1\n    FROM nation n, region r\n    WHERE n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')\n  )"
+                    "raw_sql": "SELECT c.*\nFROM customer c, nation n, region r\nWHERE c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')",
+                    "predicate": "c.c_acctbal > 7999\n  AND n.n_nationkey = c.c_nationkey\n      AND n.n_regionkey = r.r_regionkey\n      AND r.r_name IN ('EUROPE', 'AMERICA')"
                 }
             }
         }
     }
 }
-
