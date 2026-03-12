@@ -1,3 +1,22 @@
+explain analyze SELECT COUNT(*)
+FROM orders o
+WHERE EXISTS (
+    SELECT 1
+    FROM orders o1
+    WHERE o1.o_orderkey   = o.o_orderkey
+      AND o1.o_totalprice  > 100000
+      AND o1.o_orderdate  >= '1995-01-01'
+      AND o1.o_orderstatus = 'F'
+)
+AND o.o_orderkey IN (
+    SELECT o2.o_orderkey
+    FROM orders o2
+    WHERE o2.o_orderstatus <> 'F'
+      AND o2.o_totalprice  <= 100000
+      AND o2.o_orderdate   <  '1995-01-01'
+);
+
+
 -- ============================================================
 -- FULL CLEAN REBUILD SCRIPT
 -- RLS on fresh.orders using ONE policy with TWO functions in AND
