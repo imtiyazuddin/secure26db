@@ -12,7 +12,7 @@ WHERE EXISTS (
     WHERE o.o_orderkey = l.l_orderkey
       AND o.o_orderpriority IN ('1-URGENT', '2-HIGH')
   )
-  AND EXISTS (
+  AND NOT EXISTS (
     SELECT 1
     FROM partsupp ps
     WHERE ps.ps_partkey = l.l_partkey
@@ -34,4 +34,5 @@ WHERE EXISTS (
 --       AND ps.ps_suppkey = l.l_suppkey
 --       AND ps.ps_availqty > 0
 --   )
+
 
