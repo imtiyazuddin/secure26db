@@ -5,7 +5,7 @@
 
 SELECT c.*
 FROM customer c
-WHERE c.c_acctbal > 0
+WHERE c.c_acctbal > 7999
   AND EXISTS (
     SELECT 1
     FROM nation n, region r
@@ -23,3 +23,4 @@ WHERE c.c_acctbal > 0
 --       AND n.n_regionkey = r.r_regionkey
 --       AND r.r_name IN ('EUROPE', 'AMERICA')
 --   )
+
