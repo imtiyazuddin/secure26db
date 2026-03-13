@@ -1,32 +1,107 @@
 -- ================================================================
--- PART 1: SETUP — run as superuser
+-- rls_policy_experiment.sql
+--
+-- Standalone RLS policy experiment script.
+-- Run as superuser:  psql -U postgres -f rls_policy_experiment.sql
+--
+-- What it does:
+--   1. Creates a minimal orders table + sample TPC-H-like data
+--   2. Creates the analyst role and security-definer predicates
+--   3. Defines TWO RLS policies (p∧¬q vs ¬q∧p orderings)
+--   4. Enables POLICY 1, runs EXPLAIN ANALYZE COUNT(*), logs output
+--   5. Enables POLICY 2, runs EXPLAIN ANALYZE COUNT(*), logs output
+--   6. Tears everything down cleanly
+--
+-- Output log: /tmp/rls_policy_experiment.log
 -- ================================================================
 
--- 1a. Create the less-privileged analyst user
+\set ON_ERROR_STOP on
+
+-- ================================================================
+-- LOGGING: all query output and \qecho messages go to the log file
+-- ================================================================
+\o /tmp/rls_policy_experiment.log
+
+\qecho '================================================================'
+\qecho 'RLS Policy Experiment Log'
+\qecho 'Run at: ' :current_timestamp
+\qecho '================================================================'
+\qecho ''
+
+
+-- ================================================================
+-- PART 0: PRE-TEARDOWN — idempotent cleanup from any previous run
+-- ================================================================
+\qecho '--- [0] Pre-teardown (idempotent) ---'
+
+-- Suppress "does not exist" noise during pre-teardown
+SET client_min_messages = WARNING;
+
+DO $$
+BEGIN
+    -- Drop policies if they exist
+    DROP POLICY IF EXISTS rls_policy_p_then_not_q ON orders;
+    DROP POLICY IF EXISTS rls_policy_not_q_then_p ON orders;
+
+    -- Disable & drop RLS
+    IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'orders' AND schemaname = 'public') THEN
+        ALTER TABLE orders DISABLE ROW LEVEL SECURITY;
+    END IF;
+
+    -- Revoke and drop functions
+    DROP FUNCTION IF EXISTS pred_p(bigint);
+    DROP FUNCTION IF EXISTS pred_q(bigint);
+
+    -- Drop analyst role if it exists
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'analyst') THEN
+        REVOKE ALL ON SCHEMA public FROM analyst;
+        REVOKE ALL ON ALL TABLES  IN SCHEMA public FROM analyst;
+        DROP ROLE analyst;
+    END IF;
+
+    -- Drop orders table if it was created by us
+    DROP TABLE IF EXISTS orders;
+END;
+$$;
+
+RESET client_min_messages;
+\qecho 'Pre-teardown complete.'
+\qecho ''
+
+
+-- ================================================================
+-- PART 2: ANALYST ROLE + GRANTS
+-- ================================================================
+\qecho '--- [2] Creating analyst role ---'
+
 CREATE ROLE analyst LOGIN PASSWORD 'analyst123';
+GRANT USAGE  ON SCHEMA public TO analyst;
+GRANT SELECT ON TABLE  orders TO analyst;
 
--- 1b. Minimal schema access only
-GRANT USAGE  ON SCHEMA public  TO analyst;
-GRANT SELECT ON TABLE  orders  TO analyst;
+\qecho 'Role created.'
+\qecho ''
 
--- 1c. Enable RLS — superuser is exempt, analyst is not
-ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE orders FORCE  ROW LEVEL SECURITY;
+CREATE INDEX idx_orders_totalprice  ON orders (o_totalprice);
+CREATE INDEX idx_orders_orderdate   ON orders (o_orderdate);
 
+-- Used in equality filters inside both predicates
+CREATE INDEX idx_orders_orderstatus ON orders (o_orderstatus);
+
+-- Used as the join key in every correlated EXISTS subquery
+CREATE INDEX idx_orders_custkey     ON orders (o_custkey);
 
 -- ================================================================
--- PART 2: SECURITY DEFINER FUNCTIONS (owned by superuser)
---         These run with superuser privileges regardless of caller,
---         bypassing RLS on any internal table access they perform.
+-- PART 3: SECURITY DEFINER FUNCTIONS
 -- ================================================================
+\qecho '--- [3] Creating security-definer predicate functions ---'
 
--- Predicate p: "premium fulfilled order"
+-- pred_p: "premium fulfilled order"
 CREATE OR REPLACE FUNCTION pred_p(order_key bigint)
 RETURNS boolean
 LANGUAGE sql
 STABLE
-SECURITY DEFINER                          -- runs as function owner (superuser)
-SET search_path = public                  -- prevents search_path hijacking
+SECURITY DEFINER
+SET search_path = public
 AS $$
     SELECT EXISTS (
         SELECT 1
@@ -44,7 +119,7 @@ AS $$
     );
 $$;
 
--- Predicate q: "significant order"
+-- pred_q: "significant order"
 CREATE OR REPLACE FUNCTION pred_q(order_key bigint)
 RETURNS boolean
 LANGUAGE sql
@@ -67,107 +142,106 @@ AS $$
     );
 $$;
 
--- Grant execution rights to analyst only — not table-level access
 GRANT EXECUTE ON FUNCTION pred_p(bigint) TO analyst;
 GRANT EXECUTE ON FUNCTION pred_q(bigint) TO analyst;
 
-
--- ================================================================
--- PART 3: RLS POLICY
---         Analyst may only read rows that satisfy p OR q.
---         The policy itself calls the SECURITY DEFINER functions,
---         so internal correlated subqueries inside them run as
---         superuser and are not blocked by RLS recursively.
--- ================================================================
-
-CREATE POLICY analyst_orders_policy
-    ON     orders
-    FOR    SELECT
-    TO     analyst
-    USING  ( pred_p(o_orderkey) OR pred_q(o_orderkey) );
+\qecho 'Functions created and granted.'
+\qecho ''
 
 
 -- ================================================================
--- PART 4: QUERIES — switch to analyst role
+-- PART 4: ENABLE RLS ON orders
 -- ================================================================
+\qecho '--- [4] Enabling RLS on orders ---'
+
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE orders FORCE  ROW LEVEL SECURITY;   -- applies to table owner too
+
+\qecho 'RLS enabled (FORCE mode).'
+\qecho ''
+
+
+-- ================================================================
+-- PART 6: EXPERIMENT A — Policy: pred_p AND NOT pred_q
+-- ================================================================
+CREATE POLICY rls_policy_p_then_not_q
+    ON orders AS PERMISSIVE FOR SELECT TO analyst
+    USING (
+        pred_p(o_orderkey)
+        AND NOT pred_q(o_orderkey)
+    );
 
 SET ROLE analyst;
+EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+SELECT COUNT(*) AS implication_violations
+FROM   orders;
+RESET ROLE;
 
-explain analyze SELECT COUNT(*) AS implication_violations
-FROM   orders o
-WHERE  pred_p(o.o_orderkey)            -- p holds
-  AND  NOT pred_q(o.o_orderkey);       -- q does NOT hold
-
-
-RESET ROLE;   -- back to superuser
+-- Done with this experiment — drop before creating the next
+DROP POLICY rls_policy_p_then_not_q ON orders;
 
 
 -- ================================================================
--- PART 5: TEARDOWN — drop everything in reverse dependency order
+-- PART 7: EXPERIMENT B — Policy: NOT pred_q AND pred_p
 -- ================================================================
+CREATE POLICY rls_policy_not_q_then_p
+    ON orders AS PERMISSIVE FOR SELECT TO analyst
+    USING (
+        NOT pred_q(o_orderkey)
+        AND pred_p(o_orderkey)
+    );
 
--- Drop RLS policy first (depends on functions)
-DROP POLICY analyst_orders_policy ON orders;
+SET ROLE analyst;
+EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+SELECT COUNT(*) AS implication_violations
+FROM   orders;
+RESET ROLE;
+
+DROP POLICY rls_policy_not_q_then_p ON orders;
+-- ================================================================
+-- PART 8: TEARDOWN — drop everything in reverse dependency order
+-- ================================================================
+\qecho '================================================================'
+\qecho 'TEARDOWN'
+\qecho '================================================================'
+
+-- Drop policies
+DROP POLICY IF EXISTS rls_policy_p_then_not_q ON orders;
+DROP POLICY IF EXISTS rls_policy_not_q_then_p ON orders;
+\qecho 'Policies dropped.'
 
 -- Disable RLS
 ALTER TABLE orders DISABLE ROW LEVEL SECURITY;
+\qecho 'RLS disabled.'
 
 -- Revoke and drop functions
 REVOKE EXECUTE ON FUNCTION pred_p(bigint) FROM analyst;
 REVOKE EXECUTE ON FUNCTION pred_q(bigint) FROM analyst;
 DROP FUNCTION pred_p(bigint);
 DROP FUNCTION pred_q(bigint);
+\qecho 'Functions dropped.'
 
--- Revoke table and schema access
+-- Revoke role permissions
 REVOKE SELECT ON TABLE  orders FROM analyst;
 REVOKE USAGE  ON SCHEMA public FROM analyst;
 
--- Drop the user last
+-- Drop the table (remove this line if you want to keep your data)
+DROP TABLE orders;
+\qecho 'Table dropped.'
+
+-- Drop the role
 DROP ROLE analyst;
+\qecho 'Role dropped.'
 
+\qecho ''
+\qecho '================================================================'
+\qecho 'All done. Full teardown complete.'
+\qecho 'Log written to: /tmp/rls_policy_experiment.log'
+\qecho '================================================================'
 
+-- Close the log file (output returns to stdout)
 
-
-
-
-
--- View for p: "premium fulfilled order"
-CREATE VIEW p AS
-SELECT o.*
-FROM orders o
-WHERE o.o_totalprice  > 150000
-  AND o.o_orderstatus = 'F'
-  AND o.o_orderdate   > '1994-12-31'
-  AND EXISTS (
-      SELECT 1 FROM orders o2
-      WHERE o2.o_custkey    = o.o_custkey
-        AND o2.o_orderstatus = 'F'
-  );
-
--- View for q: "significant order"
-CREATE VIEW q AS
-SELECT o.*
-FROM orders o
-WHERE o.o_totalprice > 50000
-  AND o.o_orderdate  > '1993-12-31'
-  AND EXISTS (
-      SELECT 1 FROM orders o2
-      WHERE o2.o_custkey    = o.o_custkey
-        AND o2.o_orderstatus = 'F'
-  );
-
-explain analyze  SELECT COUNT(*)
-FROM orders o
-WHERE o.o_orderkey IN (SELECT o_orderkey FROM p)       -- p holds
-  AND o.o_orderkey NOT IN (SELECT o_orderkey FROM q);  -- q does not hold
-
-
-
-
-
-
-
-
+---------------------------------------------- expt 2 ------ normal query 1
 explain analyze SELECT COUNT(*)
 FROM orders o
 WHERE
@@ -191,20 +265,24 @@ WHERE
         )
     );
 
-"Aggregate  (cost=8202111917.35..8202111917.36 rows=1 width=8) (actual time=182124.952..182124.953 rows=1 loops=1)"
-"  ->  Hash Join  (cost=49254.77..8202111578.80 rows=135420 width=0) (actual time=182124.948..182124.949 rows=0 loops=1)"
-"        Hash Cond: (o.o_custkey = o2.o_custkey)"
-"        ->  Seq Scan on orders o  (cost=0.00..8202060462.00 rows=135420 width=8) (actual time=182124.946..182124.947 rows=0 loops=1)"
-"              Filter: ((o_totalprice > '150000'::numeric) AND (o_orderdate > '1994-12-31'::date) AND ((o_orderstatus)::text = 'F'::text) AND ((o_totalprice <= '50000'::numeric) OR (o_orderdate <= '1993-12-31'::date) OR (NOT EXISTS(SubPlan 1))))"
-"              Rows Removed by Filter: 1500000"
-"              SubPlan 1"
-"                ->  Seq Scan on orders o3  (cost=0.00..49212.00 rows=9 width=0) (actual time=9.136..9.136 rows=1 loops=19894)"
-"                      Filter: ((o_custkey = o.o_custkey) AND ((o_orderstatus)::text = 'F'::text))"
-"                      Rows Removed by Filter: 177033"
-"        ->  Hash  (cost=48172.75..48172.75 rows=86562 width=8) (never executed)"
-"              ->  HashAggregate  (cost=47307.12..48172.75 rows=86562 width=8) (never executed)"
-"                    Group Key: o2.o_custkey"
-"                    ->  Seq Scan on orders o2  (cost=0.00..45462.00 rows=738050 width=8) (never executed)"
-"                          Filter: ((o_orderstatus)::text = 'F'::text)"
-"Planning Time: 0.447 ms"
-"Execution Time: 182125.872 ms"
+-------------------------------------- expt 3 ------ normal query 2
+explain analyze SELECT COUNT(*)
+FROM orders o
+WHERE
+    -- p holds
+    o.o_totalprice  > 150000
+    AND o.o_orderstatus = 'F'
+    AND o.o_orderdate   > '1994-12-31'
+    AND NOT (
+        o.o_totalprice > 50000
+        AND o.o_orderdate > '1993-12-31'
+        AND EXISTS (
+            SELECT 1 FROM orders o3
+            WHERE o3.o_custkey    = o.o_custkey
+              AND o3.o_orderstatus = 'F'
+        )
+    AND EXISTS (
+        SELECT 1 FROM orders o2
+        WHERE o2.o_custkey    = o.o_custkey
+          AND o2.o_orderstatus = 'F'
+    );
