@@ -31,11 +31,11 @@ df = pd.DataFrame(rows, columns=cols)
 df['Optimization_Ratio'] = df['Pure_Opt'] / df['Indexed_Opt']
 df['Execution_Ratio'] = df['Pure_Exec'] / df['Indexed_Exec']
 
-TITLE_FS = 24
-LABEL_FS = 24
-TICK_FS = 20
-LEGEND_FS = 24
-ANNOT_FS = 24
+TITLE_FS = 30
+LABEL_FS = 30
+TICK_FS = 27
+LEGEND_FS = 30
+ANNOT_FS = 30
 
 x = np.arange(len(df))
 width = 0.38
@@ -52,7 +52,7 @@ ax.set_ylabel('Ratio', fontsize=LABEL_FS)
 ax.set_xticks(x)
 ax.set_xticklabels(df['Query'].tolist(), rotation=45, fontsize=TICK_FS)
 ax.tick_params(axis='y', labelsize=TICK_FS)
-ax.axhline(1.0, color='black', linestyle='--', linewidth=1, label='Parity = 1.0')
+ax.axhline(1.0, color='black', linestyle='--', linewidth=1, label='Baseline = 1.0')
 ax.grid(axis='y', alpha=0.3)
 ax.set_axisbelow(True)
 ax.legend(fontsize=LEGEND_FS)
@@ -63,10 +63,10 @@ ax.set_ylim(0, y_max * 1.18 if y_max > 0 else 1.0)
 
 for i, (o, e) in enumerate(zip(opt_vals, exec_vals)):
     if not np.isfinite(o):
-        ax.text(x[i] - width/2, y_max * 1.03, 'TIMEOUT', rotation=90,
+        ax.text(x[i] - width/2, y_max - y_max * 0.2, 'TIMEOUT', rotation=90,
                 ha='center', va='bottom', fontsize=ANNOT_FS, color='crimson')
     if not np.isfinite(e):
-        ax.text(x[i] + width/2, y_max * 1.03, 'TIMEOUT', rotation=90,
+        ax.text(x[i] + width/2, y_max - y_max * 0.2, 'TIMEOUT', rotation=90,
                 ha='center', va='bottom', fontsize=ANNOT_FS, color='crimson')
 
 fig.tight_layout()
