@@ -67,7 +67,7 @@ ax.tick_params(axis='y', labelsize=TICK_FS)
 ax.axhline(1.0, color='black', linestyle='--', linewidth=1, label='Baseline = 1.0')
 ax.grid(axis='y', alpha=0.3)
 ax.set_axisbelow(True)
-ax.legend(fontsize=LEGEND_FS)
+ax.legend(loc='center left', fontsize=LEGEND_FS)
 
 finite_vals = np.concatenate([
     opt_vals[np.isfinite(opt_vals)],
@@ -79,10 +79,10 @@ ax.set_ylim(0, y_max * 1.18 if y_max > 0 else 1.0)
 # Annotate timeout / undefined ratios
 for i, (o, e) in enumerate(zip(opt_vals, exec_vals)):
     if not np.isfinite(o):
-        ax.text(x[i] - width/2, y_max * 1.03, 'TIMEOUT', rotation=90,
+        ax.text(x[i] - width/2, y_max - y_max * 0.2, 'TIMEOUT', rotation=90,
                 ha='center', va='bottom', fontsize=ANNOT_FS, color='crimson')
     if not np.isfinite(e):
-        ax.text(x[i] + width/2, y_max * 1.03, 'TIMEOUT', rotation=90,
+        ax.text(x[i] + width/2, y_max - y_max * 0.2, 'TIMEOUT', rotation=90,
                 ha='center', va='bottom', fontsize=ANNOT_FS, color='crimson')
 
 fig.tight_layout()
