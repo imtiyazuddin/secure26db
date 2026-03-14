@@ -27,11 +27,11 @@ df['Execution_Rewrite_over_Pure'] = df['Rewrite_Execution_ms'] / df['Pure_RLS_Ex
 df['Optimization_View_over_Pure'] = df['View_Optimization_ms'] / df['Pure_RLS_Optimization_ms']
 df['Optimization_Rewrite_over_Pure'] = df['Rewrite_Optimization_ms'] / df['Pure_RLS_Optimization_ms']
 
-TITLE_FS = 24
-LABEL_FS = 24
-TICK_FS = 18
-LEGEND_FS = 20
-ANNOT_FS = 14
+TITLE_FS = 30
+LABEL_FS = 30
+TICK_FS = 27
+LEGEND_FS = 30
+ANNOT_FS = 30
 
 x = np.arange(len(df))
 width = 0.38
@@ -69,10 +69,10 @@ ax.bar(x + width/2, exec_rewrite, width, label='Rewrite / Pure RLS', color='#F58
 ax.set_title('Normalized Execution Time per Query', fontsize=TITLE_FS)
 ax.set_ylabel('Ratio', fontsize=LABEL_FS)
 ax.tick_params(axis='y', labelsize=TICK_FS)
-ax.axhline(1.0, color='black', linestyle='--', linewidth=1, label='Parity = 1.0')
+ax.axhline(1.0, color='black', linestyle='--', linewidth=1, label='Baseline = 1.0')
 ax.grid(axis='y', alpha=0.3)
 ax.set_axisbelow(True)
-ax.legend(fontsize=LEGEND_FS)
+ax.legend(loc='upper center',fontsize=LEGEND_FS)
 exec_ymax = finite_max(exec_view, exec_rewrite)
 ax.set_ylim(0, exec_ymax * 1.15 if exec_ymax > 0 else 1.0)
 annotate_timeouts(ax, exec_view, exec_rewrite, x, width)
@@ -87,10 +87,10 @@ ax.set_ylabel('Ratio', fontsize=LABEL_FS)
 ax.set_xticks(x)
 ax.set_xticklabels(df['QID'].tolist(), rotation=45, fontsize=TICK_FS)
 ax.tick_params(axis='y', labelsize=TICK_FS)
-ax.axhline(1.0, color='black', linestyle='--', linewidth=1, label='Parity = 1.0')
+ax.axhline(1.0, color='black', linestyle='--', linewidth=1, label='Baseline = 1.0')
 ax.grid(axis='y', alpha=0.3)
 ax.set_axisbelow(True)
-ax.legend(fontsize=LEGEND_FS)
+ax.legend(loc='upper center',fontsize=LEGEND_FS)
 opt_ymax = finite_max(opt_view, opt_rewrite)
 ax.set_ylim(0, opt_ymax * 1.18 if opt_ymax > 0 else 1.0)
 annotate_timeouts(ax, opt_view, opt_rewrite, x, width)
