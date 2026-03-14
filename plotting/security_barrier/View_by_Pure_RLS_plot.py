@@ -41,11 +41,11 @@ df = pd.DataFrame(rows, columns=cols)
 df['Optimization_Ratio'] = df['View_Opt'] / df['Pure_Opt']
 df['Execution_Ratio'] = df['View_Exec'] / df['Pure_Exec']
 
-TITLE_FS = 24
-LABEL_FS = 24
-TICK_FS = 20
-LEGEND_FS = 24
-ANNOT_FS = 20
+TITLE_FS = 30
+LABEL_FS = 30
+TICK_FS = 27
+LEGEND_FS = 30
+ANNOT_FS = 30
 
 x = np.arange(len(df))
 width = 0.38
