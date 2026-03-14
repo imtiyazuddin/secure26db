@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Input CSV created from the log analysis
-csv_path = 'rls_log_analysis.csv'
+csv_path = 'rls_log_analysis.csv' # all_data.csv in the repo
 output_png = 'normalized_rls_two_panel.png'
 
 df = pd.read_csv(csv_path)
