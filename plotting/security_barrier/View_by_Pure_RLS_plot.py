@@ -54,9 +54,9 @@ exec_vals = df['Execution_Ratio'].to_numpy(dtype=float)
 
 fig, ax = plt.subplots(figsize=(20, 9))
 ax.bar(x - width/2, opt_vals, width,
-       label='Optimization Ratio (View / Pure RLS)', color='#4C78A8')
+       label='Optimization', color='#4C78A8')
 ax.bar(x + width/2, exec_vals, width,
-       label='Execution Ratio (View / Pure RLS)', color='#F58518')
+       label='Execution', color='#F58518')
 
 ax.set_title('Normalized Ratios per Query (View / Pure RLS)', fontsize=TITLE_FS)
 ax.set_xlabel('Query ID', fontsize=LABEL_FS)
@@ -64,7 +64,7 @@ ax.set_ylabel('Ratio', fontsize=LABEL_FS)
 ax.set_xticks(x)
 ax.set_xticklabels(df['Query'].tolist(), rotation=45, fontsize=TICK_FS)
 ax.tick_params(axis='y', labelsize=TICK_FS)
-ax.axhline(1.0, color='black', linestyle='--', linewidth=1, label='Baseline = 1.0')
+ax.axhline(1.0, color='black', linestyle='--', linewidth=2, label='Baseline = 1.0')
 ax.grid(axis='y', alpha=0.3)
 ax.set_axisbelow(True)
 ax.legend(loc='center left', fontsize=LEGEND_FS)
