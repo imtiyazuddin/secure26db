@@ -43,8 +43,8 @@ opt_vals = df['Optimization_Ratio'].to_numpy(dtype=float)
 exec_vals = df['Execution_Ratio'].to_numpy(dtype=float)
 
 fig, ax = plt.subplots(figsize=(20, 9))
-ax.bar(x - width/2, opt_vals, width, label='Optimization', color='#4C78A8')
-ax.bar(x + width/2, exec_vals, width, label='Execution', color='#F58518')
+ax.bar(x - width/2, opt_vals, width, label='Optimization', color='black')
+ax.bar(x + width/2, exec_vals, width, label='Execution', color='red')
 
 ax.set_title('Normalized Ratios per Query (Pure RLS / Indexed RLS)', fontsize=TITLE_FS)
 ax.set_xlabel('Query ID', fontsize=LABEL_FS)
