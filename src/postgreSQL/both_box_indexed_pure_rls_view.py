@@ -608,8 +608,6 @@ def init_connections():
         user="tpch_tester", password="password", port=5432 )
     conn_tester.autocommit = True
     cursor_tester = conn_tester.cursor()
-    #cursor_tester.execute("SELECT * FROM partsupp;")
-    #print(cursor_tester.query)
 
 
 def close_connections():

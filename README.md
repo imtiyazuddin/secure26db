@@ -1,5 +1,55 @@
 # secure26db
 
+# Project Directory Structure
+📁 src/                     # Main scripts for all experiments
+│
+└── 📁 postgreSQL/          # Experiments on PostgreSQL database engine
+    │
+    ├── 📄 both_box_indexed_pure_rls_view.py  
+    │      → Main experiment script (explained in detail below)
+    │
+    ├── 📄 both_box_indexed_security_definer_rls_view.py  
+    │      → Variant experiment using only Security Definer RLS + barrier views
+    │
+    ├── 📄 compare_rls_vs_manual.py  
+    │      → Experiments related to LITHE (explained later in this README)
+    │
+    ├── 📄 *.json  
+    │      → Policy‑to‑query mapping files (named according to policy structure)
+    │
+    ├── 📁 utils/  
+    │      → Old helper scripts reused in main experiments (mostly obsolete)
+    │
+    └── 📁 composition/  
+           → `.sql` scripts for policy‑combination experiments  
+           → `.plan` files containing `ANALYZE` output execution plans
+
+📁 queries/  
+    → TPCH-22 queries + LITHE‑rewritten queries  
+      (included for reference—experiments rely on `.json` files)
+
+📁 policies/  
+    → All policies generated via GPT and manually verified  
+      Includes policies used in experiments & Comm‑Engine policies
+
+📁 plotting/  
+    → Scripts to generate plots used in the paper
+
+📁 logs/  
+    → Experiment logs
+
+📁 images/  
+    → Plots produced directly by experiment scripts  
+      (not used in the final paper)
+
+## Comm-Engines Project Repos:
+A (https://github.com/ahanapradhan/BenchmarkingOracleVPD)  
+B (https://github.com/ahanapradhan/Access_Control_Policies_PE)
+
+# TPC-H Database Setup
+See https://github.com/ahanapradhan/tpch-pgsql
+
+
 # TPC-H RLS Benchmark Runner (PostgreSQL)
 
 This project benchmarks three PostgreSQL row-security architectures against all **22 TPC-H queries**.
