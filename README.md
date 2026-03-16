@@ -1,28 +1,28 @@
 # secure26db
 
 # Project Directory Structure
-📁 src/                     # Main scripts for all experiments
-│
-└── 📁 postgreSQL/          # Experiments on PostgreSQL database engine
-    │
-    ├── 📄 both_box_indexed_pure_rls_view.py  
-    │      → Main experiment script (explained in detail below)
-    │
+📁 src/ # Main scripts for all experiments  
+│  
+└── 📁 postgreSQL/ # Experiments on PostgreSQL database engine  
+    │  
+    ├── 📄 both_box_indexed_pure_rls_view.py    
+    │      → Main experiment script (explained in detail below)  
+    │  
     ├── 📄 both_box_indexed_security_definer_rls_view.py  
-    │      → Variant experiment using only Security Definer RLS + barrier views
-    │
-    ├── 📄 compare_rls_vs_manual.py  
-    │      → Experiments related to LITHE (explained later in this README)
-    │
-    ├── 📄 *.json  
-    │      → Policy‑to‑query mapping files (named according to policy structure)
-    │
+    │      → Variant experiment using only Security Definer RLS + barrier views  
+    │  
+    ├── 📄 compare_rls_vs_manual.py    
+    │      → Experiments related to LITHE (explained later in this README)  
+    │  
+    ├── 📄 *.json    
+    │      → Policy‑to‑query mapping files (named according to policy structure)  
+    │  
     ├── 📁 utils/  
-    │      → Old helper scripts reused in main experiments (mostly obsolete)
-    │
-    └── 📁 composition/  
-           → `.sql` scripts for policy‑combination experiments  
-           → `.plan` files containing `ANALYZE` output execution plans
+    │      → Old helper scripts reused in main experiments (mostly obsolete)  
+    │  
+    └── 📁 composition/    
+           → `.sql` scripts for policy‑combination experiments    
+           → `.plan` files containing `ANALYZE` output execution plans  
 
 📁 queries/  
     → TPCH-22 queries + LITHE‑rewritten queries  
